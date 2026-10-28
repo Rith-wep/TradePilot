@@ -20,6 +20,7 @@ tradepilot-audit = "tradepilot.data.audit_cli:main"
 tradepilot-indicators = "tradepilot.indicators.cli:main"
 tradepilot-strategy = "tradepilot.strategies.cli:main"
 tradepilot-research-report = "tradepilot.reporting.cli:main"
+tradepilot-backtest = "tradepilot.backtesting.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -3,7 +3,7 @@
 import hashlib
 import json
 from dataclasses import fields, is_dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from enum import Enum
 from typing import Any
@@ -20,6 +20,12 @@ def canonical_value(value: Any) -> Any:
         if value.tzinfo is None or value.utcoffset() is None:
             raise ValueError("canonical timestamps must be timezone-aware")
         return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+    if isinstance(value, timedelta):
+        return {
+            "days": value.days,
+            "seconds": value.seconds,
+            "microseconds": value.microseconds,
+        }
     if isinstance(value, Enum):
         return canonical_value(value.value)
     if isinstance(value, dict):

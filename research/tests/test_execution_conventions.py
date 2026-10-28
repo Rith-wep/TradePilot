@@ -102,6 +102,15 @@ class ExecutionConventionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "below entry"):
             position_from_entry_fill("position", invalid, OrderState.PENDING, fill, account_currency="USD", quote_currency="USD")
 
+    def test_fill_rejects_favorable_slippage_direction(self) -> None:
+        with self.assertRaisesRegex(ValueError, "cannot improve"):
+            FillEvent(
+                "fill", "order", FillPurpose.EXIT, TradeDirection.SHORT,
+                OBSERVABLE, Decimal("1000"), PriceSide.ASK, Decimal("1.1000"),
+                Decimal("0"), Decimal("0.0001"), Decimal("1.0999"), Decimal("0"),
+                provenance(), Decimal("1.1000"), Decimal("1.1000"), Decimal("1.1000"),
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

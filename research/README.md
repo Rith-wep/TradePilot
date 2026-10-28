@@ -346,9 +346,9 @@ intentionally not used.
 
 ## Backtesting domain foundation
 
-The provider-neutral `tradepilot.backtesting` package defines immutable
-contracts for the future event-driven simulator. It does not run simulations,
-match orders, calculate P&L, or produce performance metrics.
+The provider-neutral `tradepilot.backtesting` package defines immutable domain
+contracts used by the event-driven simulator. The contracts remain separate
+from portfolio accounting and performance reporting.
 
 `BacktestConfig` binds a verified dataset and immutable candidate report to
 versioned execution, cost, financing, risk, instrument, currency, session, and
@@ -379,6 +379,35 @@ Cross-currency valuation requires timestamped, sourced observations available
 no later than each financial event. Conversion and other monetary calculations
 remain future work. See `docs/phases/phase-3-step-1.md` for lifecycle,
 stop/target ordering, policies, and limitations.
+
+## Deterministic execution simulator
+
+`tradepilot.backtesting.simulator` consumes an integrity-verified snapshot and
+verified candidate report. It processes completed H1 candles, observable
+signals, and opening quotes without exposing future extrema to entry decisions.
+
+The versioned signal-order policy requires quantity, expiry, and maximum holding
+candles. Optional stop/target levels are explicit pip distances from the actual
+entry fill; structural references are never converted. Opposing simultaneous
+signals are rejected and same-direction ties use canonical identity ordering.
+
+Gap stops use the worse stressed opening quote. Opening targets receive no
+favorable improvement. Intrabar fills at configured levels plus adverse
+slippage are documented OHLC assumptions. Ambiguous stop/target candles use
+conservative stop-first and preserve the uncertainty decision.
+
+An order expiring within history becomes `EXPIRED`. If history ends first, it
+remains `PENDING` with `UNRESOLVED_END_OF_DATA`; no future event is invented.
+Surviving positions use the explicit `END_OF_DATA_EXIT` research convention.
+
+```powershell
+tradepilot-backtest data/mock/EURUSD/H1 reports/{report-id} `
+  --quantity 10000 --entry-expiry-hours 72 --max-holding-candles 24 `
+  --stop-pips 20 --target-pips 40
+```
+
+Output is a deterministic JSON execution trace without profitability fields.
+See `docs/phases/phase-3-step-2.md` for the full algorithm and limitations.
 
 ## Run tests
 
@@ -429,6 +458,6 @@ python -m unittest discover -s tests -v
   data provider.
 - The `unknown` revision fallback cannot distinguish different uncommitted or
   unavailable code revisions.
-- Backtesting currently provides domain contracts only; there is no event loop,
-  order matching, P&L, trade log, or performance reporting.
+- Backtesting has no portfolio ledger, P&L, performance reporting, result
+  persistence, or live execution.
 

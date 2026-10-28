@@ -112,6 +112,9 @@ class FillEvent:
     execution_price: Decimal
     commission: Decimal
     provenance: BacktestProvenance
+    stressed_price: Decimal | None = None
+    trigger_level: Decimal | None = None
+    execution_reference_price: Decimal | None = None
 
     def __post_init__(self) -> None:
         if not self.fill_id.strip() or not self.order_id.strip():
@@ -124,6 +127,16 @@ class FillEvent:
             value = getattr(self, name)
             if not isinstance(value, Decimal) or not value.is_finite() or value < 0:
                 raise ValueError(f"{name} must be a non-negative finite Decimal")
+        for name in ("stressed_price", "trigger_level", "execution_reference_price"):
+            value = getattr(self, name)
+            if value is not None:
+                require_positive_decimal(name, value)
+        reference = self.execution_reference_price
+        if reference is not None:
+            if self.price_side is PriceSide.ASK and self.execution_price < reference:
+                raise ValueError("buy execution price cannot improve against adverse slippage")
+            if self.price_side is PriceSide.BID and self.execution_price > reference:
+                raise ValueError("sell execution price cannot improve against adverse slippage")
 
 
 def event_sort_key(available_at: datetime, priority: BoundaryEventPriority) -> tuple[datetime, int]:
