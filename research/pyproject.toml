@@ -17,6 +17,7 @@ dependencies = [
 tradepilot-validate = "tradepilot.data.cli:main"
 tradepilot-ingest-mock = "tradepilot.data.ingestion_cli:main"
 tradepilot-audit = "tradepilot.data.audit_cli:main"
+tradepilot-indicators = "tradepilot.indicators.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

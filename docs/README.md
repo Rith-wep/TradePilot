@@ -11,6 +11,7 @@ reproduce it, and see what remains unfinished.
 | 1 | 1 | [Python Research Workspace and Data Validation](phases/phase-1-step-1.md) | Complete |
 | 1 | 2 | [Market Data Provider Adapter and Historical Ingestion](phases/phase-1-step-2.md) | Complete |
 | 1 | 3 | [Historical Dataset Integrity and Reproducibility](phases/phase-1-step-3.md) | Complete |
+| 2 | 1 | [Technical Indicator Engine](phases/phase-2-step-1.md) | Complete |
 
 ## Report convention
 

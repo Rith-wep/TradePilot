@@ -161,6 +161,58 @@ content-derived ID, schema, manifest values, index consistency, and canonical
 candle validation. Exit status is `0` for valid integrity, `1` for integrity or
 validation failure, and `2` for invalid calendar arguments.
 
+## Technical indicator engine
+
+The pure `tradepilot.indicators` package calculates indicators from validated,
+completed canonical candles. It does not import provider, storage, strategy, or
+execution code.
+
+### Conventions
+
+- **EMA:** selected close price; the first value is the simple average of the
+  first `period` closes. Later values use `alpha = 2 / (period + 1)`.
+- **RSI:** selected close price and Wilder smoothing. The first value uses the
+  average gains and losses from the first `period` close changes, requiring
+  `period + 1` candles. Later averages use Wilder's recursive formula. RSI is
+  100 when average loss is zero and gain is positive; it is 50 when both are
+  zero.
+- **ATR:** selected high, low, and close. True range is the greatest of
+  `high-low`, `abs(high-previous close)`, and `abs(low-previous close)`. The
+  first ATR is the average of the first `period` true ranges; later values use
+  Wilder smoothing.
+- **Warm-up:** unavailable aligned points contain `null`. EMA and ATR need
+  `period` candles; RSI needs `period + 1`.
+- **Price basis:** `bid`, `ask`, or `mid`. Mid values are arithmetic averages of
+  the corresponding bid/ask OHLC fields and are analytical, not executable
+  prices. Because bid and ask extrema may occur at different moments, an
+  averaged midpoint high/low is an approximation of a true midpoint candle.
+- **Missing intervals:** no values are invented. Smoothing continues across the
+  observed completed candles; use `tradepilot-audit` to decide whether gaps are
+  acceptable for a particular research run.
+- **Validation:** periods must be positive integers. Invalid, unordered,
+  duplicate, mixed-instrument, or mixed-timeframe candles are rejected.
+- **Precision:** calculations use `Decimal` under a fixed 34-digit local
+  precision context and do not depend on the caller's decimal context.
+
+Canonical provider normalization rejects incomplete candles. Indicator output
+at each timestamp is calculated only from that candle and earlier input
+candles. The test suite compares every full-series prefix against a separate
+prefix-only calculation to detect future-data leakage.
+
+### Calculate indicators from an immutable snapshot
+
+```powershell
+tradepilot-indicators data/mock/EURUSD/H1 `
+  --ema-period 3 `
+  --rsi-period 3 `
+  --atr-period 3 `
+  --price-basis mid
+```
+
+The command first performs Step 3 integrity verification. It exits with status
+`1` for a corrupt dataset and `2` for invalid indicator parameters. Output is
+JSON containing the immutable dataset ID and timestamp-aligned series.
+
 ## Run tests
 
 The tests use Python's standard-library test runner:
@@ -194,4 +246,10 @@ python -m unittest discover -s tests -v
   ingestion layer retries surfaced `TimeoutError` instances.
 - Revision snapshots require explicit `allow_revisions=True`; live-provider
   revision policy remains intentionally undecided.
+- Indicators currently support canonical H1 candles and return raw Decimal
+  precision; display rounding is intentionally left to future presentation
+  code.
+- Smoothing does not reset after a missing interval. Research code must use the
+  session audit to reject unsuitable datasets before treating results as
+  continuous-market indicators.
 
