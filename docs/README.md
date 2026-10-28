@@ -14,6 +14,7 @@ reproduce it, and see what remains unfinished.
 | 2 | 1 | [Technical Indicator Engine](phases/phase-2-step-1.md) | Complete |
 | 2 | 2 | [Deterministic Trading Strategy Engine](phases/phase-2-step-2.md) | Complete |
 | 2 | 3 | [Signal Validation and Reproducible Reports](phases/phase-2-step-3.md) | Complete |
+| 3 | 1 | [Backtesting Architecture and Domain Models](phases/phase-3-step-1.md) | Complete |
 
 ## Report convention
 

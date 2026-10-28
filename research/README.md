@@ -344,6 +344,42 @@ atomic same-filesystem rename and hard-link support. Network filesystems or
 unusual filesystems may provide weaker guarantees; cross-filesystem staging is
 intentionally not used.
 
+## Backtesting domain foundation
+
+The provider-neutral `tradepilot.backtesting` package defines immutable
+contracts for the future event-driven simulator. It does not run simulations,
+match orders, calculate P&L, or produce performance metrics.
+
+`BacktestConfig` binds a verified dataset and immutable candidate report to
+versioned execution, cost, financing, risk, instrument, currency, session, and
+implementation assumptions. Its canonical SHA-256 identity excludes the
+separate run creation timestamp.
+
+At one H1 boundary, chronological information availability is:
+
+```text
+completed previous candle -> signal observable -> next opening quote
+```
+
+Opening events expose bid/ask opens only. Full bid/ask OHLC is unavailable until
+the candle completes, preventing future high, low, or close values from
+influencing entry decisions.
+
+Only market-at-next-eligible-open requests are modeled. Every request has an
+explicit expiry. Expected session closures may be skipped while it remains
+valid; strict unexpected gaps reject execution. A position can be created only
+from a validated pending-order entry fill.
+
+LONG entry/exit uses ask/bid; SHORT entry/exit uses bid/ask. Additional spread
+stress widens the observed quote symmetrically and adverse slippage is separate,
+so quoted spread is not double-counted. Stops and targets must be explicit;
+structural invalidation references are never converted automatically.
+
+Cross-currency valuation requires timestamped, sourced observations available
+no later than each financial event. Conversion and other monetary calculations
+remain future work. See `docs/phases/phase-3-step-1.md` for lifecycle,
+stop/target ordering, policies, and limitations.
+
 ## Run tests
 
 The tests use Python's standard-library test runner:
@@ -393,4 +429,6 @@ python -m unittest discover -s tests -v
   data provider.
 - The `unknown` revision fallback cannot distinguish different uncommitted or
   unavailable code revisions.
+- Backtesting currently provides domain contracts only; there is no event loop,
+  order matching, P&L, trade log, or performance reporting.
 
