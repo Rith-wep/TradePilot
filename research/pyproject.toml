@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "pyarrow>=17",
+    "tzdata>=2024.1; platform_system == 'Windows'",
 ]
 
 [project.scripts]

@@ -35,6 +35,16 @@ class NormalizationTests(unittest.TestCase):
                 is_synthetic=True,
             )
 
+    def test_rejects_non_finite_price(self) -> None:
+        with self.assertRaisesRegex(NormalizationError, "finite decimals"):
+            normalize_provider_candle(
+                raw_candle(0, bid_open="NaN"),
+                instrument=EURUSD,
+                provider="mock",
+                dataset_version="v1",
+                is_synthetic=True,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
