@@ -1,0 +1,7 @@
+timestamp,symbol,timeframe,bid_open,bid_high,bid_low,bid_close,ask_open,ask_high,ask_low,ask_close,source,dataset_version,is_synthetic
+2024-01-02T00:00:00Z,EURUSD,H1,1.10000,1.10120,1.09950,1.10080,1.10015,1.10135,1.09965,1.10095,tradepilot_synthetic_fixture,synthetic-v1,true
+2024-01-02T01:00:00Z,EURUSD,H1,1.10080,1.10200,1.10020,1.10150,1.10095,1.10215,1.10035,1.10165,tradepilot_synthetic_fixture,synthetic-v1,true
+2024-01-02T02:00:00Z,EURUSD,H1,1.10150,1.10180,1.10040,1.10070,1.10165,1.10195,1.10055,1.10085,tradepilot_synthetic_fixture,synthetic-v1,true
+2024-01-02T03:00:00Z,EURUSD,H1,1.10070,1.10110,1.09980,1.10010,1.10085,1.10125,1.09995,1.10025,tradepilot_synthetic_fixture,synthetic-v1,true
+2024-01-02T04:00:00Z,EURUSD,H1,1.10010,1.10160,1.09990,1.10120,1.10025,1.10175,1.10005,1.10135,tradepilot_synthetic_fixture,synthetic-v1,true
+

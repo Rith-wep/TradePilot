@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tradepilot-research"
+version = "0.1.0"
+description = "Evidence-first research tooling for TradePilot AI"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pyarrow>=17",
+]
+
+[project.scripts]
+tradepilot-validate = "tradepilot.data.cli:main"
+tradepilot-ingest-mock = "tradepilot.data.ingestion_cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
