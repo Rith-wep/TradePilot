@@ -284,6 +284,66 @@ tradepilot-strategy data/mock/EURUSD/H1 pullback `
 Output contains candidate facts and rule evidence only—never simulated profit
 or performance metrics.
 
+## Reproducible candidate-signal reports
+
+The provider-neutral `tradepilot.reporting` package converts a verified dataset
+and immutable setup records into a content-addressed JSON research report. It
+does not calculate outcomes or performance metrics.
+
+Deterministic report content includes dataset ID/checksum, strategy and
+configuration identity, indicator parameters, price basis, session calendar,
+gap policy, research engine version, implementation revision, and exact signal
+evidence. The run creation timestamp is stored separately and does not affect
+report identity.
+
+Canonical JSON uses UTF-8, sorted keys, compact separators, UTC `Z` timestamps,
+and exact Decimal strings. The report ID is SHA-256 over canonical deterministic
+content. Implementation revision is included in identity: this prevents reports
+from different known code revisions appearing equivalent, at the cost of a new
+ID even when a code change does not affect results. The CLI prefers
+`TRADEPILOT_IMPLEMENTATION_REVISION`, then a Git commit SHA, and falls back to
+`unknown` without requiring Git.
+
+H1 report validation requires:
+
+- detection timestamp exactly matches a candle in the verified dataset;
+- `observable_at = detection candle open + 1 hour`;
+- signal strategy, configuration, instrument, timeframe, and dataset
+  provenance match the run; and
+- duplicate candidate identities are absent.
+
+Valid zero-candidate reports are supported.
+
+### Generate and verify
+
+```powershell
+tradepilot-research-report generate `
+  data/mock/EURUSD/H1 breakout `
+  --output reports --lookback 20
+
+tradepilot-research-report generate `
+  data/mock/EURUSD/H1 pullback `
+  --output reports `
+  --ema-period 200 --rsi-period 14 --atr-period 14
+
+tradepilot-research-report verify reports/{report-id}
+```
+
+Storage layout:
+
+```text
+reports/{report-id}/report.json
+reports/{report-id}/runs/{run-metadata-id}.json
+```
+
+Complete report directories are staged under the same report root before an
+atomic directory rename publishes them. Concurrent identical writers verify and
+reuse the winner. Existing immutable reports are never overwritten; incomplete
+or corrupt destinations are rejected. This assumes a local filesystem with
+atomic same-filesystem rename and hard-link support. Network filesystems or
+unusual filesystems may provide weaker guarantees; cross-filesystem staging is
+intentionally not used.
+
 ## Run tests
 
 The tests use Python's standard-library test runner:
@@ -328,4 +388,9 @@ python -m unittest discover -s tests -v
 - Only H1 completed-candle observability is currently mapped.
 - Structural invalidation references are not executable stops and do not model
   spreads, slippage, gaps, or fills.
+- Report verification proves internal content integrity but does not
+  automatically re-download or independently authenticate the original market
+  data provider.
+- The `unknown` revision fallback cannot distinguish different uncommitted or
+  unavailable code revisions.
 
