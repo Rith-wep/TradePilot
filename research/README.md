@@ -409,6 +409,33 @@ tradepilot-backtest data/mock/EURUSD/H1 reports/{report-id} `
 Output is a deterministic JSON execution trace without profitability fields.
 See `docs/phases/phase-3-step-2.md` for the full algorithm and limitations.
 
+## Portfolio accounting and analytics
+
+The provider-neutral `tradepilot.accounting` package consumes immutable
+simulation results without changing fills or execution behavior. It reconstructs
+strict one-entry/one-exit trades, calculates quote- and account-currency P&L,
+posts commissions once at their fill timestamps, and builds a deterministic
+cash/equity ledger.
+
+Intrabar exits preserve their unknown H1 interval and become financially
+recognized only at candle completion. Opening and modeled candle-close boundary
+timing remain separately labeled.
+
+Historical currency conversion supports verified direct and reciprocal rates.
+Only the latest non-future, non-stale observation is eligible; conflicting or
+missing rates fail closed. Execution prices and quote P&L never change during
+conversion, and only observations actually used enter report identity.
+
+LONG positions mark to stressed bid and SHORT positions to stressed ask. Marks
+exclude hypothetical future exit slippage and commission. FX notional is
+reported as exposure and is not deducted from cash. Margin, liquidation, and
+financing remain unmodeled.
+
+Metrics preserve explicit undefined statuses for zero trades, absent wins or
+losses, and missing initial risk. Forced terminal and ambiguous exits stay in
+the financial results and are separately counted. See
+`docs/phases/phase-3-step-3.md` for formulas, definitions, and limitations.
+
 ## Run tests
 
 The tests use Python's standard-library test runner:
@@ -458,6 +485,6 @@ python -m unittest discover -s tests -v
   data provider.
 - The `unknown` revision fallback cannot distinguish different uncommitted or
   unavailable code revisions.
-- Backtesting has no portfolio ledger, P&L, performance reporting, result
-  persistence, or live execution.
+- Accounting reports are in-memory and have no immutable result persistence,
+  margin/liquidation model, financing, or live execution.
 
