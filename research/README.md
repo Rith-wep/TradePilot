@@ -213,6 +213,77 @@ The command first performs Step 3 integrity verification. It exits with status
 `1` for a corrupt dataset and `2` for invalid indicator parameters. Output is
 JSON containing the immutable dataset ID and timestamp-aligned series.
 
+## Deterministic strategy engine
+
+The pure `tradepilot.strategies` package detects research candidates from
+validated completed candles and aligned indicators. It does not simulate
+orders, entries, fills, position size, profit, or strategy performance.
+
+Every immutable setup records strategy/version, instrument, timeframe, the
+detection candle's opening timestamp, the completed-candle observability time,
+direction, rule evidence, indicators, invalidation descriptions, a
+non-executable `structural_invalidation_reference`, and a deterministic
+configuration fingerprint. For H1 candle open `t`, the candidate is observable
+only at `t + 1 hour`, never at `t`.
+
+### Price Range Breakout v1
+
+Default lookback is 20 and default price basis is midpoint:
+
+```text
+range_high = maximum high over [t-N, ..., t-1]
+range_low  = minimum low over [t-N, ..., t-1]
+
+LONG:  close[t] > range_high
+SHORT: close[t] < range_low
+```
+
+The current candle is excluded and equality never triggers. An optional
+minimum distance can be configured as a Decimal multiple of ATR. The broken
+range boundary is the structural invalidation reference.
+
+### EMA/RSI Trend Pullback v1
+
+Defaults are EMA 200, RSI 14, ATR 14, recovery level 50, and midpoint prices:
+
+```text
+LONG:
+  EMA[t] > EMA[t-1]
+  close[t-1] <= EMA[t-1]
+  close[t] > EMA[t]
+  RSI[t] > 50
+  RSI[t] > RSI[t-1]
+
+SHORT:
+  EMA[t] < EMA[t-1]
+  close[t-1] >= EMA[t-1]
+  close[t] < EMA[t]
+  RSI[t] < 50
+  RSI[t] < RSI[t-1]
+```
+
+The immediate previous-candle condition requires a fresh recovery crossover,
+preventing repeated candidates when price simply remains on the same side of
+the EMA. Structural references are `low[t-1] - ATR[t]` for LONG and
+`high[t-1] + ATR[t]` for SHORT. They are research references, not stop orders.
+
+Expected configured session closures are allowed; unexpected missing H1
+intervals reject detection by default. Indicator timestamps must align exactly,
+warm-up values suppress candidates, duplicates are removed by stable identity,
+and prefix tests enforce causality.
+
+### Run a strategy
+
+```powershell
+tradepilot-strategy data/mock/EURUSD/H1 breakout --lookback 20
+
+tradepilot-strategy data/mock/EURUSD/H1 pullback `
+  --ema-period 200 --rsi-period 14 --atr-period 14
+```
+
+Output contains candidate facts and rule evidence only—never simulated profit
+or performance metrics.
+
 ## Run tests
 
 The tests use Python's standard-library test runner:
@@ -252,4 +323,9 @@ python -m unittest discover -s tests -v
 - Smoothing does not reset after a missing interval. Research code must use the
   session audit to reject unsuitable datasets before treating results as
   continuous-market indicators.
+- Strategy candidates are unvalidated research hypotheses, not evidence of
+  profitability or trading recommendations.
+- Only H1 completed-candle observability is currently mapped.
+- Structural invalidation references are not executable stops and do not model
+  spreads, slippage, gaps, or fills.
 

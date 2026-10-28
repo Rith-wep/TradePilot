@@ -65,11 +65,12 @@ def checksum_bytes(payload: bytes) -> str:
 
 
 def candle_content_bytes(candle: Candle) -> bytes:
+    price_format = f".{candle.instrument.price_precision}f"
     values = [
         candle.timestamp.astimezone(timezone.utc).isoformat(timespec="microseconds"),
         candle.instrument.symbol,
         candle.timeframe,
-        *(format(getattr(candle, name), "f") for name in PRICE_COLUMNS),
+        *(format(getattr(candle, name), price_format) for name in PRICE_COLUMNS),
         str(candle.is_synthetic).lower(),
     ]
     return "|".join(values).encode("utf-8")

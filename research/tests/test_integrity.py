@@ -1,7 +1,9 @@
 import json
 import tempfile
 import unittest
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 
 from ingestion_helpers import EURUSD, START, raw_candle
 from tradepilot.data.integrity import verify_dataset
@@ -69,6 +71,17 @@ class IntegrityTests(unittest.TestCase):
         report = verify_dataset(self.dataset_root)
         self.assertFalse(report.valid)
         self.assertIn("index_instrument_mismatch", {issue.code for issue in report.issues})
+
+    def test_decimal_scale_round_trip_preserves_content_identity(self) -> None:
+        separate = tempfile.TemporaryDirectory()
+        self.addCleanup(separate.cleanup)
+        store = ParquetDatasetStore(separate.name)
+        scaled = replace(canonical(0), bid_high=Decimal("2.5"), ask_high=Decimal("2.5"))
+        stored = store.save(
+            "mock", EURUSD, "H1", [scaled], retrieved_at=NOW,
+            request_start=START, request_end=START + timedelta(hours=1),
+        )
+        self.assertTrue(verify_dataset(stored.snapshot_path).valid)
 
 
 if __name__ == "__main__":
