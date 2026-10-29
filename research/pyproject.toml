@@ -16,6 +16,7 @@ dependencies = [
 [project.scripts]
 tradepilot-validate = "tradepilot.data.cli:main"
 tradepilot-ingest-mock = "tradepilot.data.ingestion_cli:main"
+tradepilot-ingest-oanda = "tradepilot.data.oanda_ingestion_cli:main"
 tradepilot-audit = "tradepilot.data.audit_cli:main"
 tradepilot-indicators = "tradepilot.indicators.cli:main"
 tradepilot-strategy = "tradepilot.strategies.cli:main"

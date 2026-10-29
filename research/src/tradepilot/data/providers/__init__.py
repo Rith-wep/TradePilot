@@ -9,6 +9,7 @@ from tradepilot.data.providers.base import (
     RateLimitError,
     TransientProviderError,
 )
+from tradepilot.data.providers.oanda import OandaMarketDataProvider, OandaProviderConfig
 
 __all__ = [
     "MarketDataProvider",
@@ -18,5 +19,7 @@ __all__ = [
     "ProviderRequest",
     "RateLimitError",
     "TransientProviderError",
+    "OandaMarketDataProvider",
+    "OandaProviderConfig",
 ]
 

@@ -48,8 +48,13 @@ def _ohlc_issue(prefix: str, open_: Decimal, high: Decimal, low: Decimal, close:
     return None
 
 
-def validate_candles(candles: Sequence[Candle]) -> QualityReport:
+def validate_candles(
+    candles: Sequence[Candle], *, unusual_spread_pips: Decimal = Decimal("20")
+) -> QualityReport:
     """Validate file order and each H1 bid/ask candle without changing data."""
+
+    if unusual_spread_pips <= 0:
+        raise ValueError("unusual_spread_pips must be positive")
 
     issues: list[QualityIssue] = []
     seen_timestamps: set[object] = set()
@@ -85,6 +90,17 @@ def validate_candles(candles: Sequence[Candle]) -> QualityReport:
             (candle.ask_open, candle.ask_high, candle.ask_low, candle.ask_close),
         )):
             issues.append(QualityIssue("error", "bid_above_ask", "bid must not exceed ask for corresponding OHLC fields", index))
+        spreads = tuple(ask - bid for bid, ask in zip(
+            (candle.bid_open, candle.bid_high, candle.bid_low, candle.bid_close),
+            (candle.ask_open, candle.ask_high, candle.ask_low, candle.ask_close),
+        ))
+        threshold = candle.instrument.pip_size * unusual_spread_pips
+        if spreads and max(spreads) > threshold:
+            issues.append(QualityIssue(
+                "warning", "unusual_spread",
+                f"bid/ask spread exceeds {format(unusual_spread_pips, 'f')} pips; candle retained",
+                index,
+            ))
         if not candle.source.strip() or not candle.dataset_version.strip():
             issues.append(QualityIssue("error", "missing_provenance", "source and dataset_version are required", index))
 

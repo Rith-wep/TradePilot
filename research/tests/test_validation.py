@@ -55,6 +55,19 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(report.warning_count, 1)
         self.assertEqual(report.issues[0].code, "time_gap")
 
+    def test_flags_unusual_spread_without_discarding_candle(self) -> None:
+        wide = replace(
+            self.candles[0],
+            ask_open=self.candles[0].bid_open + Decimal("0.00300"),
+            ask_high=self.candles[0].bid_high + Decimal("0.00300"),
+            ask_low=self.candles[0].bid_low + Decimal("0.00300"),
+            ask_close=self.candles[0].bid_close + Decimal("0.00300"),
+        )
+        report = validate_candles([wide])
+        self.assertTrue(report.valid)
+        self.assertEqual(report.candle_count, 1)
+        self.assertIn("unusual_spread", {issue.code for issue in report.issues})
+
 
 if __name__ == "__main__":
     unittest.main()
