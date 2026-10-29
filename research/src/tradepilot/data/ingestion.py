@@ -98,6 +98,8 @@ class HistoricalIngestor:
         timeframe: str,
         start: datetime,
         end: datetime,
+        *,
+        allow_revisions: bool = False,
     ) -> IngestionResult:
         _require_utc_range(start, end)
         raw_candles = []
@@ -174,6 +176,7 @@ class HistoricalIngestor:
             request_start=start,
             request_end=end,
             provider_metadata=metadata,
+            allow_revisions=allow_revisions,
         )
         return IngestionResult(
             fetched_count=len(normalized),
