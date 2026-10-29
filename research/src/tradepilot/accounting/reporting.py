@@ -1,7 +1,7 @@
 """Canonical deterministic accounting report identity."""
 
 from tradepilot.accounting.models import AccountingContent, AccountingReport
-from tradepilot.reporting.canonical import canonical_json_bytes, sha256_hex
+from tradepilot.core.canonical import canonical_json_bytes, sha256_hex
 
 
 def accounting_report_id(content: AccountingContent) -> str:

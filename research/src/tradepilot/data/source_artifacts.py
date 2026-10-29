@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass
 from datetime import datetime
-import hashlib
-import json
+
+from tradepilot.core.canonical import canonical_json_bytes, sha256_hex
 
 SOURCE_ARTIFACT_SCHEMA_VERSION = "tradepilot-source-artifacts/v1"
 
@@ -50,35 +50,7 @@ class SourceArtifactManifest:
 
     @property
     def checksum(self) -> str:
-        return hashlib.sha256(source_manifest_bytes(self)).hexdigest()
-
-
-def source_manifest_bytes(manifest: "SourceArtifactManifest") -> bytes:
-    """Serialize source provenance without importing the reporting package."""
-    payload = {
-        "artifacts": [
-            {
-                "byte_count": item.byte_count,
-                "file_name": item.file_name,
-                "first_timestamp": item.first_timestamp.isoformat().replace("+00:00", "Z"),
-                "last_timestamp": item.last_timestamp.isoformat().replace("+00:00", "Z"),
-                "month": item.month,
-                "row_count": item.row_count,
-                "sha256": item.sha256,
-                "side": item.side,
-            }
-            for item in manifest.artifacts
-        ],
-        "calendar_id": manifest.calendar_id,
-        "delimiter": manifest.delimiter,
-        "instrument": manifest.instrument,
-        "schema_version": manifest.schema_version,
-        "timeframe": manifest.timeframe,
-        "timestamp_format": manifest.timestamp_format,
-    }
-    return json.dumps(
-        payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False,
-    ).encode("utf-8")
+        return sha256_hex(canonical_json_bytes(self))
 
 
 def source_manifest_identity(manifest: SourceArtifactManifest) -> str:

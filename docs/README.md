@@ -21,6 +21,14 @@ reproduce it, and see what remains unfinished.
 | 4 | 1 | [OANDA Historical Forex Data Integration](phases/phase-4-step-1.md) | Complete |
 | 4 | 2 | [Real-Data Verification and Research Readiness](phases/phase-4-step-2.md) | Complete |
 | 4 | CSV import | [Dukascopy Paired CSV Import](phases/phase-4-dukascopy-csv-import.md) | Complete |
+| 4 | Multi-year CSV | [Dukascopy Multi-Year Batch Import](phases/phase-4-dukascopy-multiyear.md) | Complete |
+
+## Architecture and development
+
+- [Architecture and identity compatibility](architecture.md)
+- [Project structure](project-structure.md)
+- [Data and research flow](data-flow.md)
+- [Development and CLI reference](development.md)
 
 ## Report convention
 

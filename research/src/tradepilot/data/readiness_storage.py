@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from tradepilot.data.readiness import ReadinessReport
-from tradepilot.reporting.canonical import canonical_json_bytes, canonical_value, sha256_hex
+from tradepilot.core.canonical import canonical_json_bytes, canonical_value, sha256_hex
 
 
 class ReadinessStorageError(RuntimeError):

@@ -4,7 +4,7 @@ from dataclasses import asdict
 from decimal import Decimal
 from typing import Sequence
 
-from tradepilot.reporting.canonical import canonical_json_bytes, sha256_hex
+from tradepilot.core.canonical import canonical_json_bytes, sha256_hex
 from tradepilot.strategies.base import configuration_fingerprint
 from tradepilot.strategies.breakout import BreakoutConfig, PriceRangeBreakoutStrategy
 from tradepilot.strategies.pullback import EmaRsiPullbackStrategy, PullbackConfig

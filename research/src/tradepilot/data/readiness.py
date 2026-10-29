@@ -11,7 +11,7 @@ from typing import Sequence
 from tradepilot.data.integrity import IntegrityReport
 from tradepilot.data.sessions import TradingSessionCalendar, classify_gaps
 from tradepilot.data.storage import CandleRevision
-from tradepilot.reporting.canonical import canonical_json_bytes, sha256_hex
+from tradepilot.core.canonical import canonical_json_bytes, sha256_hex
 
 
 READINESS_SCHEMA_VERSION = "tradepilot-real-data-readiness/v1"

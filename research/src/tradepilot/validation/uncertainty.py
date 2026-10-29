@@ -5,7 +5,7 @@ from decimal import Decimal
 from math import floor
 from typing import Sequence
 
-from tradepilot.reporting.canonical import sha256_hex
+from tradepilot.core.canonical import sha256_hex
 from tradepilot.validation.models import BootstrapInterval, UncertaintyStatus
 
 

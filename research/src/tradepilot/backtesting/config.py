@@ -5,7 +5,7 @@ from datetime import datetime
 
 from tradepilot.backtesting.models import BacktestProvenance, InstrumentSpec, require_currency, require_utc
 from tradepilot.backtesting.policies import ExecutionPolicy, FinancingPolicy, RiskPolicy, TransactionCostPolicy
-from tradepilot.reporting.canonical import canonical_json_bytes, sha256_hex
+from tradepilot.core.canonical import canonical_json_bytes, sha256_hex
 
 
 BACKTEST_CONFIG_SCHEMA_VERSION = "tradepilot-backtest-config-v1"

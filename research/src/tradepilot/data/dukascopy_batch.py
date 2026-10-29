@@ -20,7 +20,7 @@ from tradepilot.data.source_artifacts import (
 )
 from tradepilot.data.storage import ParquetDatasetStore, StoredDataset
 from tradepilot.data.validation import validate_candles
-from tradepilot.reporting.canonical import canonical_json_bytes, sha256_hex
+from tradepilot.core.canonical import canonical_json_bytes, sha256_hex
 
 
 BATCH_PLAN_VERSION = "tradepilot-dukascopy-batch-plan/v1"

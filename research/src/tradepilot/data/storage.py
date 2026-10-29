@@ -16,7 +16,8 @@ import pyarrow.parquet as pq
 
 from tradepilot.data.models import Candle, Instrument
 from tradepilot.data.validation import QualityReport, validate_candles
-from tradepilot.data.source_artifacts import SourceArtifactManifest, source_manifest_bytes
+from tradepilot.core.canonical import canonical_json_bytes
+from tradepilot.data.source_artifacts import SourceArtifactManifest
 
 
 SCHEMA_VERSION = "tradepilot-candles-v1"
@@ -265,7 +266,7 @@ class ParquetDatasetStore:
             raise StorageError("refusing to save a dataset with validation errors")
 
         dataset_checksum = canonical_dataset_checksum(merged)
-        source_payload = source_manifest_bytes(source_artifacts) if source_artifacts is not None else None
+        source_payload = canonical_json_bytes(source_artifacts) if source_artifacts is not None else None
         source_checksum = checksum_bytes(source_payload) if source_payload is not None else None
         dataset_id = dataset_identifier(merged, instrument, timeframe, source_checksum)
         directory = self.dataset_directory(provider, instrument, timeframe)

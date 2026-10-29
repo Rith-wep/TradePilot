@@ -7,7 +7,7 @@ from typing import Sequence
 
 from tradepilot.data.dukascopy_batch import DukascopyBatchError, import_batch
 from tradepilot.data.storage import ParquetDatasetStore, StorageError
-from tradepilot.reporting.canonical import canonical_value
+from tradepilot.core.canonical import canonical_value
 from tradepilot.validation.partition_governance import (
     PartitionGovernanceError, publish_sealed_partitions,
 )

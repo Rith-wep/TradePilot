@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Sequence
 
-from tradepilot.reporting.canonical import canonical_json_bytes, sha256_hex
+from tradepilot.core.canonical import canonical_json_bytes, sha256_hex
 from tradepilot.validation.models import (
     LockedTestAuthorization, LockedTestEvaluation, ScenarioEvaluation, SelectionDecision,
 )

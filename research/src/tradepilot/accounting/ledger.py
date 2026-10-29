@@ -14,7 +14,7 @@ from tradepilot.backtesting.execution import stressed_price
 from tradepilot.backtesting.models import CurrencyConversionObservation, TradeDirection
 from tradepilot.backtesting.positions import PositionStatus
 from tradepilot.backtesting.simulation_models import AuditKind, SimulationConfig, SimulationResult
-from tradepilot.reporting.canonical import canonical_json_bytes, sha256_hex
+from tradepilot.core.canonical import canonical_json_bytes, sha256_hex
 
 
 def _details(event) -> dict[str, object]:

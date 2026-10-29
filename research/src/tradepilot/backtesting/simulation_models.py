@@ -11,7 +11,7 @@ from tradepilot.backtesting.models import require_utc
 from tradepilot.backtesting.orders import OrderRequest, OrderState
 from tradepilot.backtesting.positions import PositionState
 from tradepilot.backtesting.signal_policy import SignalOrderPolicy
-from tradepilot.reporting.canonical import canonical_json_bytes, sha256_hex
+from tradepilot.core.canonical import canonical_json_bytes, sha256_hex
 from tradepilot.strategies.models import SetupRecord
 
 

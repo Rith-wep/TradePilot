@@ -12,7 +12,7 @@ from tradepilot.backtesting.policies import TransactionCostPolicy
 from tradepilot.backtesting.simulation_models import SimulationCandidateReport, SimulationConfig
 from tradepilot.backtesting.simulator import EventDrivenSimulator
 from tradepilot.data.sessions import TradingSessionCalendar
-from tradepilot.reporting.canonical import canonical_json_bytes, sha256_hex
+from tradepilot.core.canonical import canonical_json_bytes, sha256_hex
 from tradepilot.validation.models import ChronologicalPartition, ScenarioEvaluation
 from tradepilot.validation.partitions import partition_candles
 from tradepilot.validation.warmup import eligible_setups

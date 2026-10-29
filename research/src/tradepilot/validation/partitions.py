@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import Sequence
 
 from tradepilot.data.models import Candle
-from tradepilot.reporting.canonical import canonical_json_bytes, sha256_hex
+from tradepilot.core.canonical import canonical_json_bytes, sha256_hex
 from tradepilot.validation.models import ChronologicalPartition, PartitionName, PartitionPolicy
 
 

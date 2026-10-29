@@ -35,7 +35,7 @@ from tradepilot.backtesting.validation import validate_fill, validate_order_conf
 from tradepilot.data.integrity import IntegrityReport
 from tradepilot.data.models import Candle
 from tradepilot.data.sessions import TradingSessionCalendar, classify_gaps
-from tradepilot.reporting.canonical import canonical_json_bytes, sha256_hex
+from tradepilot.core.canonical import canonical_json_bytes, sha256_hex
 from tradepilot.strategies.models import Direction, SetupRecord
 
 

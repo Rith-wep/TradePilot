@@ -2,11 +2,30 @@
 
 > **Every setup comes with its evidence.**
 
-**Status:** Planning / implementation not started  
+**Status:** Research foundation implemented through Phase 4.5 Step 2
 **Product:** Evidence-based forex research and trading decision-support SaaS  
 **Initial audience:** Beginner and intermediate forex traders  
 **Initial markets:** EUR/USD and GBP/USD, H1 candles  
 **Execution:** Research and paper trading only; **no live broker order placement** in v1
+
+## Current implementation
+
+The `research/` Python workspace currently includes canonical H1 bid/ask data
+models, provider-neutral ingestion, OANDA and offline Dukascopy adapters,
+immutable Parquet snapshots, integrity and session-gap auditing, EMA/RSI/ATR,
+versioned breakout and pullback candidate detection, immutable candidate
+reports, deterministic event-driven simulation, accounting, chronological
+60/20/20 validation, walk-forward and cost-stress tooling, and locked-test
+governance. Real-data access remains credential- or file-gated, and no result is
+presented as evidence of profitability.
+
+Developer references:
+
+- [Architecture](docs/architecture.md)
+- [Project structure](docs/project-structure.md)
+- [Data flow](docs/data-flow.md)
+- [Development and command reference](docs/development.md)
+- [Research workspace](research/README.md)
 
 ## 1. Purpose and product promise
 
@@ -241,7 +260,8 @@ This is a **target layout**, not evidence that these files or modules already ex
 | **7 — AI & alerts** | Grounded AI explanations, Telegram alerts, paper-trade logging | Factual grounding tests, deduplication, traceable alerts |
 | **8 — Beta & release** | Security review, monitoring, paper validation, user interviews | Honest evidence presentation and launch readiness review |
 
-**Do not skip ahead.** Phase 1 is the only authorized implementation phase until the user approves the next one.
+Phases 1–4 of the Python research foundation are implemented. Later product
+phases remain unauthorized until explicitly approved.
 
 ## 12. Instructions for Codex (read before every task)
 
@@ -258,22 +278,13 @@ This is a **target layout**, not evidence that these files or modules already ex
 11. If a proposed implementation conflicts with realistic market simulation or evidence integrity, explain the issue rather than silently weakening standards.
 12. Do not change the product scope, stack, or roadmap without explicit user approval.
 
-## 13. Immediate next task: Phase 1, Step 1
+## 13. Current maintenance milestone
 
-**Goal:** Establish a minimal, reproducible Python research workspace and a trustworthy data contract **without implementing trading strategies or frontend code yet**.
-
-**Requested work for Codex:**
-
-1. Inspect the repository; preserve existing files and conventions.
-2. Create a minimal `research/` Python package with `pyproject.toml`, basic tooling, and tests.
-3. Define typed models/contracts for instrument metadata and H1 bid/ask candles, with UTC timestamp conventions.
-4. Create a small, clearly labeled **synthetic** EUR/USD fixture (and optionally GBP/USD) to support tests.
-5. Implement candle validation: timestamps, ordering, duplicates, OHLC consistency, and bid/ask sanity checks.
-6. Add a simple CLI or testable function that loads the fixture and outputs a data-quality summary.
-7. Document setup and test commands. Run tests and report exact outcomes.
-8. **Stop after Step 1** and ask for approval before provider integration, strategies, backtesting, Node API, or UI.
-
-**Acceptance criteria:** A fresh developer can install the Python package, run the fixture validation, obtain a deterministic quality report, and run passing tests. No market-data vendor credentials are needed.
+Phase 4.5 improves organization and reviewability without changing research
+behavior. Steps 1–2 establish architecture documentation, golden identity
+regression tests, and dependency-free shared canonical serialization. Further
+module moves, dependency refactors and new product features require separate
+approval.
 
 ## 14. Product success criteria
 

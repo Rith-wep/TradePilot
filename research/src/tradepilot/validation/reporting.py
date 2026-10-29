@@ -1,6 +1,6 @@
 """Canonical deterministic validation-report identity."""
 
-from tradepilot.reporting.canonical import canonical_json_bytes, sha256_hex
+from tradepilot.core.canonical import canonical_json_bytes, sha256_hex
 from tradepilot.validation.models import ValidationContent, ValidationReport
 
 

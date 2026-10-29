@@ -20,7 +20,7 @@ from tradepilot.backtesting.simulation_models import SimulationConfig
 from tradepilot.backtesting.simulator import EventDrivenSimulator, SimulationError
 from tradepilot.data.integrity import verify_dataset
 from tradepilot.data.sessions import WeeklySessionCalendar
-from tradepilot.reporting.canonical import canonical_value
+from tradepilot.core.canonical import canonical_value
 from tradepilot.reporting.validation import resolve_implementation_revision
 
 
