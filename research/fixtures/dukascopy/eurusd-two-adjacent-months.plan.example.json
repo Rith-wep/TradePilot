@@ -1,0 +1,32 @@
+{
+  "schema_version": "tradepilot-dukascopy-batch-plan/v1",
+  "instrument": "EURUSD",
+  "timeframe": "H1",
+  "timestamp_format": "%Y-%m-%dT%H:%M:%S%z",
+  "delimiter": ",",
+  "calendar": {
+    "name": "dukascopy-fx-week-review-before-use",
+    "timezone": "America/New_York",
+    "open_weekday": 6,
+    "open_time": "17:00",
+    "close_weekday": 4,
+    "close_time": "17:00",
+    "closure_dates": []
+  },
+  "months": [
+    {
+      "month": "2026-09",
+      "bid_path": "../../../raw/EURUSD-2026-09-BID.csv",
+      "ask_path": "../../../raw/EURUSD-2026-09-ASK.csv",
+      "bid_sha256": "REPLACE_WITH_VERIFIED_SHA256_OF_COMPLETE_2026_09_BID_FILE",
+      "ask_sha256": "REPLACE_WITH_VERIFIED_SHA256_OF_COMPLETE_2026_09_ASK_FILE"
+    },
+    {
+      "month": "2026-10",
+      "bid_path": "../../../raw/EURUSD-2026-10-BID.csv",
+      "ask_path": "../../../raw/EURUSD-2026-10-ASK.csv",
+      "bid_sha256": "REPLACE_WITH_VERIFIED_SHA256_OF_COMPLETE_2026_10_BID_FILE",
+      "ask_sha256": "REPLACE_WITH_VERIFIED_SHA256_OF_COMPLETE_2026_10_ASK_FILE"
+    }
+  ]
+}

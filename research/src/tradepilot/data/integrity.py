@@ -124,6 +124,28 @@ def verify_dataset(path: str | Path) -> IntegrityReport:
     quality: QualityReport | None = None
     actual_parquet_checksum: str | None = None
     actual_dataset_checksum: str | None = None
+    source_artifacts_checksum: str | None = None
+
+    source_path = snapshot / "source-artifacts.json"
+    declared_source_checksum = manifest.get("source_artifacts_sha256") if manifest else None
+    if declared_source_checksum is not None:
+        if not isinstance(declared_source_checksum, str):
+            issues.append(IntegrityIssue("error", "invalid_source_artifacts_checksum", "source artifact checksum must be a string"))
+        elif not source_path.exists():
+            issues.append(IntegrityIssue("error", "missing_source_artifacts", f"required file is missing: {source_path}"))
+        else:
+            try:
+                source_payload = source_path.read_bytes()
+                source_artifacts_checksum = checksum_bytes(source_payload)
+                if source_artifacts_checksum != declared_source_checksum:
+                    issues.append(IntegrityIssue("error", "source_artifacts_checksum_mismatch", "source artifact provenance checksum does not match manifest"))
+                parsed_source = json.loads(source_payload.decode("utf-8"))
+                if not isinstance(parsed_source, dict):
+                    raise ValueError("source artifact root must be an object")
+            except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
+                issues.append(IntegrityIssue("error", "invalid_source_artifacts", str(exc)))
+    elif source_path.exists():
+        issues.append(IntegrityIssue("error", "unexpected_source_artifacts", "snapshot has undeclared source provenance"))
 
     if manifest and manifest.get("schema_version") != SCHEMA_VERSION:
         issues.append(IntegrityIssue("error", "schema_version_mismatch", "manifest schema version is unsupported"))
@@ -187,7 +209,7 @@ def verify_dataset(path: str | Path) -> IntegrityReport:
         if not quality.valid:
             issues.append(IntegrityIssue("error", "candle_validation_failed", "stored candles fail canonical validation"))
         actual_dataset_checksum = canonical_dataset_checksum(candles)
-        actual_id = dataset_identifier(candles, instrument, timeframe)
+        actual_id = dataset_identifier(candles, instrument, timeframe, source_artifacts_checksum)
         checks = (
             ("dataset_checksum_mismatch", manifest.get("dataset_sha256") if manifest else None, actual_dataset_checksum),
             ("dataset_id_mismatch", dataset_id, actual_id),

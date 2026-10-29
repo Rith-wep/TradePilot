@@ -106,11 +106,15 @@ class DukascopyCsvMarketDataProvider:
         expected_bid_sha256: str | None = None,
         expected_ask_sha256: str | None = None,
         is_synthetic: bool = False,
+        instrument_symbol: str = "EURUSD",
     ) -> None:
         if not timestamp_format:
             raise ValueError("timestamp_format is required and is never inferred")
         if len(delimiter) != 1:
             raise ValueError("delimiter must be exactly one character")
+        if instrument_symbol not in ("EURUSD", "GBPUSD"):
+            raise ValueError("Dukascopy CSV instrument must be EURUSD or GBPUSD")
+        self.instrument_symbol = instrument_symbol
         self.bid_path = Path(bid_path)
         self.ask_path = Path(ask_path)
         self.timestamp_format = timestamp_format
@@ -174,8 +178,8 @@ class DukascopyCsvMarketDataProvider:
     def fetch_page(self, request: ProviderRequest, cursor: str | None = None) -> ProviderPage:
         if cursor is not None:
             raise DukascopyCsvError("Dukascopy CSV provider does not use pagination cursors")
-        if request.instrument.symbol != "EURUSD" or request.timeframe != "H1":
-            raise DukascopyCsvError("Dukascopy CSV importer supports EURUSD H1 only")
+        if request.instrument.symbol != self.instrument_symbol or request.timeframe != "H1":
+            raise DukascopyCsvError(f"Dukascopy CSV pair represents {self.instrument_symbol} H1")
         values = tuple(item for item in self._candles if request.start <= item.timestamp < request.end)
         metadata = {
             "adapter": "dukascopy-csv/v1",

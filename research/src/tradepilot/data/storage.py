@@ -3,6 +3,8 @@
 import hashlib
 import json
 import os
+import shutil
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -14,6 +16,7 @@ import pyarrow.parquet as pq
 
 from tradepilot.data.models import Candle, Instrument
 from tradepilot.data.validation import QualityReport, validate_candles
+from tradepilot.data.source_artifacts import SourceArtifactManifest, source_manifest_bytes
 
 
 SCHEMA_VERSION = "tradepilot-candles-v1"
@@ -45,6 +48,8 @@ class StoredDataset:
     dataset_id: str
     snapshot_path: Path
     revisions: tuple[CandleRevision, ...] = ()
+    source_artifacts_path: Path | None = None
+    source_artifacts_checksum: str | None = None
 
 
 def parquet_schema(precision: int) -> pa.Schema:
@@ -99,9 +104,15 @@ def schema_identity(instrument: Instrument, timeframe: str) -> dict[str, object]
     }
 
 
-def dataset_identifier(candles: Sequence[Candle], instrument: Instrument, timeframe: str) -> str:
+def dataset_identifier(
+    candles: Sequence[Candle], instrument: Instrument, timeframe: str,
+    source_artifacts_checksum: str | None = None,
+) -> str:
     schema = json.dumps(schema_identity(instrument, timeframe), sort_keys=True, separators=(",", ":"))
-    return checksum_bytes(schema.encode("utf-8") + b"\n" + canonical_content_bytes(candles))
+    payload = schema.encode("utf-8") + b"\n" + canonical_content_bytes(candles)
+    if source_artifacts_checksum is not None:
+        payload += b"source-artifacts:" + source_artifacts_checksum.encode("ascii") + b"\n"
+    return checksum_bytes(payload)
 
 
 def _rows(candles: Sequence[Candle], instrument: Instrument) -> list[dict[str, object]]:
@@ -229,13 +240,16 @@ class ParquetDatasetStore:
         request_end: datetime,
         provider_metadata: dict[str, str] | None = None,
         allow_revisions: bool = False,
+        source_artifacts: SourceArtifactManifest | None = None,
+        merge_existing: bool = True,
     ) -> StoredDataset:
         previous_id = self.latest_dataset_id(provider, instrument, timeframe)
         existing = [] if previous_id is None else self.load_snapshot(provider, instrument, timeframe, previous_id)
-        merged_by_timestamp = {candle.timestamp: candle for candle in existing}
+        existing_by_timestamp = {candle.timestamp: candle for candle in existing}
+        merged_by_timestamp = dict(existing_by_timestamp) if merge_existing else {}
         revisions: list[CandleRevision] = []
         for candle in candles:
-            prior = merged_by_timestamp.get(candle.timestamp)
+            prior = existing_by_timestamp.get(candle.timestamp)
             if prior is not None and candle_content_bytes(prior) != candle_content_bytes(candle):
                 if not allow_revisions:
                     raise StorageError(f"conflicting candle already stored at {candle.timestamp.isoformat()}")
@@ -251,16 +265,25 @@ class ParquetDatasetStore:
             raise StorageError("refusing to save a dataset with validation errors")
 
         dataset_checksum = canonical_dataset_checksum(merged)
-        dataset_id = dataset_identifier(merged, instrument, timeframe)
+        source_payload = source_manifest_bytes(source_artifacts) if source_artifacts is not None else None
+        source_checksum = checksum_bytes(source_payload) if source_payload is not None else None
+        dataset_id = dataset_identifier(merged, instrument, timeframe, source_checksum)
         directory = self.dataset_directory(provider, instrument, timeframe)
         snapshot = self.snapshot_directory(provider, instrument, timeframe, dataset_id)
         parquet_path = snapshot / "candles.parquet"
         manifest_path = snapshot / "manifest.json"
-        if snapshot.exists() and (not parquet_path.exists() or not manifest_path.exists()):
+        source_path = snapshot / "source-artifacts.json" if source_artifacts is not None else None
+        if snapshot.exists() and (
+            not parquet_path.exists() or not manifest_path.exists()
+            or (source_path is not None and not source_path.exists())
+        ):
             raise StorageError(f"existing snapshot is incomplete: {snapshot}")
         if not snapshot.exists():
-            snapshot.mkdir(parents=True)
-            parquet_temp = snapshot / ".candles.parquet.tmp"
+            snapshots_root = snapshot.parent
+            snapshots_root.mkdir(parents=True, exist_ok=True)
+            staging = snapshots_root / f".staging-{uuid.uuid4().hex}"
+            staging.mkdir()
+            parquet_temp = staging / "candles.parquet"
             table = pa.Table.from_pylist(_rows(merged, instrument), schema=parquet_schema(instrument.price_precision))
             pq.write_table(table, parquet_temp, compression="zstd")
             file_checksum = checksum_bytes(parquet_temp.read_bytes())
@@ -275,8 +298,20 @@ class ParquetDatasetStore:
                 "last_timestamp": report.last_timestamp,
                 "quality": report.to_dict(),
             }
-            os.replace(parquet_temp, parquet_path)
-            _atomic_json(manifest_path, manifest)
+            if source_payload is not None and source_checksum is not None:
+                (staging / "source-artifacts.json").write_bytes(source_payload)
+                manifest["source_artifacts_sha256"] = source_checksum
+            (staging / "manifest.json").write_text(
+                json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+            )
+            try:
+                os.replace(staging, snapshot)
+            except OSError as exc:
+                if not snapshot.exists():
+                    raise StorageError("cannot atomically publish dataset snapshot") from exc
+                shutil.rmtree(staging, ignore_errors=True)
+                if not parquet_path.exists() or not manifest_path.exists():
+                    raise StorageError(f"concurrent snapshot is incomplete: {snapshot}") from exc
         else:
             file_checksum = checksum_bytes(parquet_path.read_bytes())
 
@@ -300,4 +335,5 @@ class ParquetDatasetStore:
         return StoredDataset(
             parquet_path, manifest_path, len(merged), dataset_checksum, file_checksum,
             report, dataset_id, snapshot, tuple(revisions),
+            source_path, source_checksum,
         )

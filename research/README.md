@@ -517,6 +517,26 @@ conflicting replacement; it is not durable one-time enforcement. Canonical JSON
 and SHA-256 make final validation-report identity reproducible. See
 `docs/phases/phase-3-step-4.md` for policy details and limitations.
 
+## Multi-year Dukascopy CSV batches
+
+`tradepilot-import-dukascopy-batch` consolidates ordered monthly H1 BID/ASK
+pairs for EURUSD or GBPUSD. A JSON plan supplies explicit timestamp parsing,
+the approved market-session calendar, and the expected SHA-256 of every source.
+All files and months are validated before a complete snapshot is atomically
+published; unexplained gaps, overlaps, boundary violations, and unapproved
+historical revisions fail closed.
+
+```powershell
+tradepilot-import-dukascopy-batch path\to\plan.json --output data
+```
+
+Snapshots retain a deterministic source-artifact manifest and monthly/yearly
+coverage and spread reports. The command also seals deterministic 60/20/20
+partitions against the exact dataset identity, but it neither authorizes nor
+evaluates the locked test partition. See
+`docs/phases/phase-4-dukascopy-multiyear.md` for the plan schema, revision
+workflow, filesystem assumptions, and limitations.
+
 ## Run tests
 
 The tests use Python's standard-library test runner:
@@ -568,6 +588,7 @@ python -m unittest discover -s tests -v
   unavailable code revisions.
 - Accounting reports are in-memory and have no immutable result persistence,
   margin/liquidation model, financing, or live execution.
-- Validation locked-test authorization is process-scoped; no persistent,
-  cross-process one-time evaluation control is included.
+- Legacy validation authorization remains process-scoped. Batch imports now
+  persist a cross-process sealed partition plan, but intentionally provide no
+  test-evaluation authorization or one-time unlock mechanism.
 
