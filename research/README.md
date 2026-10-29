@@ -1,9 +1,9 @@
 # TradePilot research workspace
 
-This Phase 1 workspace defines the market-data contract, validates a small
-explicitly synthetic EUR/USD H1 bid/ask fixture, and provides a provider-neutral
-historical ingestion pipeline with Parquet storage. It contains no trading
-strategies, backtesting, live provider adapter, or execution logic.
+This research workspace provides provider-neutral market-data ingestion,
+immutable datasets, indicators, strategies, backtesting, accounting, and
+chronological validation. OANDA v20 ingestion is isolated from the downstream
+research layers and supports EUR/USD and GBP/USD H1 bid/ask candles.
 
 ## Requirements
 
@@ -64,8 +64,8 @@ and licensing remain isolated from normalization, validation, and storage.
 
 ### Real provider research and configuration
 
-No live adapter is enabled or claimed to work in this phase. OANDA v20 is the
-leading candidate because its official API documents separate bid and ask
+OANDA v20 is the implemented live HTTP provider because its official API
+documents separate bid and ask
 candles (`price=BA`), H1 granularity, candle-open timestamps, completion flags,
 and a maximum of 5,000 candles per response. Its official getting-started guide
 states that access requires a compatible v20 account, personal token, and API
@@ -75,16 +75,55 @@ license acceptance, with historical pricing advertised back to 2005:
 - https://developer.oanda.com/rest-live-v20/instrument-df/
 - https://developer.oanda.com/rest-live-v20/introduction/
 
-Before implementing it, confirm account-region availability and obtain written
-clarity on storage, commercial use, and redistribution. An eventual adapter
-would read credentials from environment variables (never source control), use
-the documented regional base URL, request unsmoothed completed `BA` H1 candles,
-and map HTTP 429/5xx/timeouts to the typed transient errors.
+Before using it, confirm account-region availability and obtain appropriate
+clarity on storage, commercial use, and redistribution. The adapter reads
+credentials from environment variables, uses the selected practice/live base
+URL, requests completed `BA` H1 candles, and maps HTTP 429/5xx/timeouts to the
+typed transient errors. Live access is not claimed until the optional smoke
+test succeeds with user-supplied credentials.
 
 Dukascopy's official historical export also advertises bid/ask data, but no
 stable automated HTTP contract or redistribution permission has been adopted:
 
 - https://www.dukascopy.com/api/data/get/historical-data-export
+
+### OANDA v20 ingestion
+
+Set credentials outside the repository, then request completed EUR/USD or
+GBP/USD H1 bid/ask candles:
+
+```powershell
+$env:OANDA_API_TOKEN = "..."
+$env:OANDA_ACCOUNT_ID = "..."
+tradepilot-ingest-oanda EURUSD `
+  --start 2024-01-01T00:00:00Z `
+  --end 2024-02-01T00:00:00Z `
+  --environment practice --output data
+```
+
+The adapter validates half-open UTC page boundaries, accepts only completed
+`price=BA` H1 candles, and never logs credentials or substitutes midpoint or
+synthetic prices. HTTP 429, transient 5xx responses, and timeouts use the shared
+bounded retry policy. Unusual spreads are retained with quality warnings.
+Generated OANDA datasets are internal licensed material and remain git-ignored;
+see `docs/phases/phase-4-step-1.md` for setup, licensing, and limitations.
+
+### Real-data readiness
+
+The credential-gated readiness command verifies both supported instruments,
+performs bounded ingestion, independently verifies immutable snapshots, and
+emits deterministic coverage, session-gap, spread, and revision evidence.
+
+```powershell
+tradepilot-oanda-readiness run `
+  --start 2024-01-01T00:00:00Z `
+  --end 2024-01-29T00:00:00Z
+```
+
+Only `READY` snapshots enter the unchanged indicator-to-strategy candidate
+pipeline. Zero-signal reports remain valid. Historical revisions fail by
+default; `--approve-revisions` is required to publish a new snapshot while the
+previous snapshot remains immutable. See `docs/phases/phase-4-step-2.md`.
 
 ## Run deterministic mock ingestion
 
@@ -436,6 +475,26 @@ losses, and missing initial risk. Forced terminal and ambiguous exits stay in
 the financial results and are separately counted. See
 `docs/phases/phase-3-step-3.md` for formulas, definitions, and limitations.
 
+## Chronological validation and robustness
+
+The `tradepilot.validation` package creates deterministic 60/20/20 candle-count
+partitions with strict half-open UTC boundaries. It supports historical-prefix
+indicator warm-up while admitting only partition-local signals and execution.
+The approved grid uses the existing configurable breakout lookback (10/20/40)
+and pullback EMA period (100/200); strategy formulas and defaults are unchanged.
+
+Expanding walk-forward folds retain zero and insufficient samples. Selection
+ranks only configurations meeting the sample policy using worst adverse-cost
+expectancy, then drawdown, trade count, and fingerprint. Five scenarios rerun
+both simulation and accounting; they never post-adjust P&amp;L. A deterministic
+five-trade moving-block bootstrap is available only at 30 or more trades.
+
+Locked-test authorization freezes selection and provenance before evaluation.
+The current registry is process-scoped and rejects tampered authorizations and
+conflicting replacement; it is not durable one-time enforcement. Canonical JSON
+and SHA-256 make final validation-report identity reproducible. See
+`docs/phases/phase-3-step-4.md` for policy details and limitations.
+
 ## Run tests
 
 The tests use Python's standard-library test runner:
@@ -458,15 +517,15 @@ python -m unittest discover -s tests -v
 
 ## Current limitations
 
-- There is no live HTTP adapter and no real or proprietary dataset is included.
+- The OANDA HTTP adapter is implemented, but no proprietary dataset or API
+  credential is included and live access depends on an eligible account.
 - Only canonical bid/ask candles are accepted; midpoint-only data is rejected
   rather than converted into artificial bid/ask prices.
 - Session classification is only as accurate as its configured broker schedule
   and explicit closure dates; there is no built-in global holiday database.
-- The initial CLI fixture and instrument metadata cover EUR/USD H1 only; the
-  provider-neutral Python interfaces can accept other instrument metadata.
-- Provider timeout enforcement belongs to each future network adapter; the
-  ingestion layer retries surfaced `TimeoutError` instances.
+- OANDA ingestion is deliberately restricted to EUR/USD and GBP/USD H1.
+- OANDA enforces request timeouts and local rate limiting; the shared ingestion
+  layer performs bounded retries for surfaced transient failures.
 - Revision snapshots require explicit `allow_revisions=True`; live-provider
   revision policy remains intentionally undecided.
 - Indicators currently support canonical H1 candles and return raw Decimal
@@ -487,4 +546,6 @@ python -m unittest discover -s tests -v
   unavailable code revisions.
 - Accounting reports are in-memory and have no immutable result persistence,
   margin/liquidation model, financing, or live execution.
+- Validation locked-test authorization is process-scoped; no persistent,
+  cross-process one-time evaluation control is included.
 

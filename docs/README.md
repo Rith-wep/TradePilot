@@ -17,6 +17,9 @@ reproduce it, and see what remains unfinished.
 | 3 | 1 | [Backtesting Architecture and Domain Models](phases/phase-3-step-1.md) | Complete |
 | 3 | 2 | [Deterministic Event-Driven Execution Simulator](phases/phase-3-step-2.md) | Complete |
 | 3 | 3 | [Deterministic Portfolio Accounting and Analytics](phases/phase-3-step-3.md) | Complete |
+| 3 | 4 | [Chronological Validation and Robustness](phases/phase-3-step-4.md) | Complete |
+| 4 | 1 | [OANDA Historical Forex Data Integration](phases/phase-4-step-1.md) | Complete |
+| 4 | 2 | [Real-Data Verification and Research Readiness](phases/phase-4-step-2.md) | Complete |
 
 ## Report convention
 
