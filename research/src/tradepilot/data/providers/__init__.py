@@ -10,6 +10,7 @@ from tradepilot.data.providers.base import (
     TransientProviderError,
 )
 from tradepilot.data.providers.oanda import OandaMarketDataProvider, OandaProviderConfig
+from tradepilot.data.providers.dukascopy_csv import DukascopyCsvMarketDataProvider, DukascopyCsvError
 
 __all__ = [
     "MarketDataProvider",
@@ -21,5 +22,7 @@ __all__ = [
     "TransientProviderError",
     "OandaMarketDataProvider",
     "OandaProviderConfig",
+    "DukascopyCsvMarketDataProvider",
+    "DukascopyCsvError",
 ]
 

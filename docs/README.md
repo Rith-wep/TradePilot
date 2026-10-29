@@ -20,6 +20,7 @@ reproduce it, and see what remains unfinished.
 | 3 | 4 | [Chronological Validation and Robustness](phases/phase-3-step-4.md) | Complete |
 | 4 | 1 | [OANDA Historical Forex Data Integration](phases/phase-4-step-1.md) | Complete |
 | 4 | 2 | [Real-Data Verification and Research Readiness](phases/phase-4-step-2.md) | Complete |
+| 4 | CSV import | [Dukascopy Paired CSV Import](phases/phase-4-dukascopy-csv-import.md) | Complete |
 
 ## Report convention
 

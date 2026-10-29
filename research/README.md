@@ -125,6 +125,28 @@ pipeline. Zero-signal reports remain valid. Historical revisions fail by
 default; `--approve-revisions` is required to publish a new snapshot while the
 previous snapshot remains immutable. See `docs/phases/phase-4-step-2.md`.
 
+### Dukascopy paired CSV import
+
+Separate EUR/USD H1 BID and ASK exports can be imported offline through the
+same provider-neutral normalization, validation, immutable storage, and
+integrity pipeline. The inspected timestamps use
+`%Y-%m-%dT%H:%M:%S%z`, but the format is always required explicitly.
+
+```powershell
+tradepilot-import-dukascopy `
+  --instrument EURUSD `
+  --bid path/to/EURUSD_H1_BID.csv `
+  --ask path/to/EURUSD_H1_ASK.csv `
+  --timestamp-format "%Y-%m-%dT%H:%M:%S%z" `
+  --strict-gaps --output data
+```
+
+The importer verifies optional expected source hashes, exact BID/ASK timestamp
+alignment, Decimal OHLC, volume, ordering, duplicates, gaps, spreads, snapshot
+checksums, and provenance. It never fabricates missing candles. Volume is
+validated but not stored in the canonical candle schema. See
+`docs/phases/phase-4-dukascopy-csv-import.md`.
+
 ## Run deterministic mock ingestion
 
 The mock command passes the existing synthetic fixture through pagination,
