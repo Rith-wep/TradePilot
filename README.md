@@ -2,7 +2,7 @@
 
 > **Every setup comes with its evidence.**
 
-**Status:** Research foundation implemented through Phase 4.5 Step 2
+**Status:** Research foundation implemented through Phase 4.5 Step 3
 **Product:** Evidence-based forex research and trading decision-support SaaS  
 **Initial audience:** Beginner and intermediate forex traders  
 **Initial markets:** EUR/USD and GBP/USD, H1 candles  
@@ -281,10 +281,10 @@ phases remain unauthorized until explicitly approved.
 ## 13. Current maintenance milestone
 
 Phase 4.5 improves organization and reviewability without changing research
-behavior. Steps 1–2 establish architecture documentation, golden identity
-regression tests, and dependency-free shared canonical serialization. Further
-module moves, dependency refactors and new product features require separate
-approval.
+behavior. Steps 1–3 establish architecture documentation, golden identity
+regression tests, dependency-free canonical serialization, and an application
+workflow boundary for real-data research readiness. Further module moves,
+dependency refactors and new product features require separate approval.
 
 ## 14. Product success criteria
 

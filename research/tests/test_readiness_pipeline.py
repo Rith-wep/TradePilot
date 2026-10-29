@@ -4,8 +4,8 @@ from datetime import time
 
 from readiness_helpers import real_candles, stored_integrity
 from simulator_helpers import START
-from tradepilot.data.readiness_pipeline import verify_candidate_pipeline
 from tradepilot.data.sessions import WeeklySessionCalendar
+from tradepilot.workflows.real_data_readiness import verify_candidate_pipeline
 
 
 class ReadinessPipelineTests(unittest.TestCase):

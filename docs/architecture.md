@@ -19,6 +19,7 @@ auditable research artifacts.
 | `tradepilot.backtesting` | Events, order lifecycle, execution policies and deterministic simulation |
 | `tradepilot.accounting` | Trade reconstruction, conversion, ledger, equity and metrics |
 | `tradepilot.validation` | Chronological partitions, walk-forward analysis, cost stress, uncertainty and locked-test governance |
+| `tradepilot.workflows` | Application use cases that compose multiple domain packages without reversing lower-layer dependencies |
 
 The intended dependency direction is:
 
@@ -37,13 +38,14 @@ all lower layers. CLI modules may compose their package and lower layers.
 
 Known boundary exceptions are documented rather than hidden:
 
-- `tradepilot.data.readiness_pipeline` orchestrates indicators, strategies and
-  reports and is therefore an application workflow located inside `data`.
 - The batch-import CLI seals research partitions after publishing a dataset.
 
-These are candidates for later incremental refactoring. Canonical JSON and
-SHA-256 helpers now live in dependency-free `tradepilot.core`; the former
-`tradepilot.reporting.canonical` path remains a compatibility re-export.
+The remaining exception is a candidate for later incremental refactoring.
+Canonical JSON and SHA-256 helpers live in dependency-free `tradepilot.core`;
+the former `tradepilot.reporting.canonical` path remains a compatibility
+re-export. Real-data candidate verification lives in
+`tradepilot.workflows.real_data_readiness`; the former
+`tradepilot.data.readiness_pipeline` path remains a compatibility re-export.
 
 ## Domain invariants
 

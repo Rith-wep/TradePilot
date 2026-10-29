@@ -57,7 +57,8 @@ tradepilot/
 ├── reporting/                      # immutable candidate research reports
 ├── backtesting/                    # execution domain and simulator
 ├── accounting/                     # financial reconstruction and metrics
-└── validation/                     # research validation and governance
+├── validation/                     # research validation and governance
+└── workflows/                      # cross-domain application orchestration
 ```
 
 `tradepilot.data.validation` means candle-quality validation.
