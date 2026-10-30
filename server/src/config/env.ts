@@ -8,6 +8,9 @@ export interface AppConfig {
   readonly nodeEnv: NodeEnvironment;
   readonly port: number;
   readonly logLevel: LogLevel;
+  readonly databaseUrl: string;
+  readonly databaseConnectTimeoutMs: number;
+  readonly databaseReadyTimeoutMs: number;
 }
 
 export class ConfigurationError extends Error {
@@ -42,10 +45,45 @@ function portValue(value: string | undefined): number {
   return port;
 }
 
+function positiveInteger(name: string, value: string | undefined, fallback: number): number {
+  const candidate = value ?? String(fallback);
+  if (!/^\d+$/.test(candidate)) {
+    throw new ConfigurationError(`${name} must be a positive integer`);
+  }
+  const parsed = Number(candidate);
+  if (!Number.isSafeInteger(parsed) || parsed < 1) {
+    throw new ConfigurationError(`${name} must be a positive integer`);
+  }
+  return parsed;
+}
+
+function databaseUrl(value: string | undefined): string {
+  if (value === undefined || value.trim() === "") {
+    throw new ConfigurationError("DATABASE_URL is required");
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new ConfigurationError("DATABASE_URL must be a valid PostgreSQL URL");
+  }
+  if (parsed.protocol !== "postgres:" && parsed.protocol !== "postgresql:") {
+    throw new ConfigurationError("DATABASE_URL must use the postgres or postgresql scheme");
+  }
+  return value;
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   return Object.freeze({
     nodeEnv: enumValue("NODE_ENV", env["NODE_ENV"], "development", NODE_ENVIRONMENTS),
     port: portValue(env["PORT"]),
     logLevel: enumValue("LOG_LEVEL", env["LOG_LEVEL"], "info", LOG_LEVELS),
+    databaseUrl: databaseUrl(env["DATABASE_URL"]),
+    databaseConnectTimeoutMs: positiveInteger(
+      "DATABASE_CONNECT_TIMEOUT_MS", env["DATABASE_CONNECT_TIMEOUT_MS"], 3_000,
+    ),
+    databaseReadyTimeoutMs: positiveInteger(
+      "DATABASE_READY_TIMEOUT_MS", env["DATABASE_READY_TIMEOUT_MS"], 1_000,
+    ),
   });
 }

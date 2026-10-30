@@ -9,16 +9,20 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "db:migrate": "npm run build && node --env-file-if-exists=.env dist/src/database/migrate-cli.js up",
+    "db:rollback": "npm run build && node --env-file-if-exists=.env dist/src/database/migrate-cli.js down",
     "start": "node --env-file-if-exists=.env dist/src/server.js",
     "test": "npm run build && node --test \"dist/tests/*.test.js\"",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "pg": "^8.23.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.3",
     "@types/node": "^24.0.0",
+    "@types/pg": "^8.23.1",
     "@types/supertest": "^6.0.3",
     "supertest": "^7.1.4",
     "typescript": "^5.9.0"

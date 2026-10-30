@@ -5,10 +5,20 @@ import { createApp } from "../src/app.js";
 import { API_VERSION } from "../src/http/contracts/envelope.js";
 import { silentLogger } from "../src/logging/logger.js";
 
-const app = createApp({
-  config: { nodeEnv: "test", port: 3000, logLevel: "error" },
-  logger: silentLogger,
-});
+const config = {
+  nodeEnv: "test" as const,
+  port: 3000,
+  logLevel: "error" as const,
+  databaseUrl: "postgresql://unused",
+  databaseConnectTimeoutMs: 100,
+  databaseReadyTimeoutMs: 100,
+};
+
+function appWithDatabase(result: boolean) {
+  return createApp({ config, logger: silentLogger, database: { async check() { return result; } } });
+}
+
+const app = appWithDatabase(true);
 
 test("liveness returns the versioned success envelope", async () => {
   const response = await request(app).get("/health/live").expect(200);
@@ -19,7 +29,7 @@ test("liveness returns the versioned success envelope", async () => {
   assert.equal(response.headers["x-powered-by"], undefined);
 });
 
-test("readiness reports only implemented configuration readiness", async () => {
+test("readiness reports configuration and database readiness", async () => {
   const response = await request(app)
     .get("/health/ready")
     .set("x-request-id", "integration-test-1")
@@ -30,8 +40,31 @@ test("readiness reports only implemented configuration readiness", async () => {
     status: "UP",
     service: "tradepilot-server",
     environment: "test",
-    checks: [{ name: "configuration", status: "UP" }],
+    checks: [
+      { name: "configuration", status: "UP" },
+      { name: "database", status: "UP" },
+    ],
   });
+});
+
+test("readiness fails closed when the database is unavailable", async () => {
+  const response = await request(appWithDatabase(false)).get("/health/ready").expect(503);
+  assert.equal(response.body.data.status, "DOWN");
+  assert.deepEqual(response.body.data.checks, [
+    { name: "configuration", status: "UP" },
+    { name: "database", status: "DOWN" },
+  ]);
+});
+
+test("liveness does not query the database", async () => {
+  let checks = 0;
+  const isolated = createApp({
+    config,
+    logger: silentLogger,
+    database: { async check() { checks += 1; return false; } },
+  });
+  await request(isolated).get("/health/live").expect(200);
+  assert.equal(checks, 0);
 });
 
 test("unsafe request IDs are replaced", async () => {
