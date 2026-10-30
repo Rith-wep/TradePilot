@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tradepilot.local/contracts/artifact-verification-v1.response.schema.json",
+  "title": "TradePilot artifact verification response v1",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "request_id", "status", "artifact", "verification"],
+      "properties": {
+        "contract_version": { "const": "tradepilot-artifact-verification/v1" },
+        "request_id": { "type": "string" },
+        "status": { "const": "VERIFIED" },
+        "artifact": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "artifact_id"],
+          "properties": {
+            "kind": { "enum": ["dataset", "candidate_report"] },
+            "artifact_id": { "$ref": "#/$defs/sha256" }
+          }
+        },
+        "verification": { "type": "object" }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "request_id", "status", "error"],
+      "properties": {
+        "contract_version": { "const": "tradepilot-artifact-verification/v1" },
+        "request_id": { "type": "string" },
+        "status": { "const": "ERROR" },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "message", "retryable"],
+          "properties": {
+            "code": { "type": "string" },
+            "message": { "type": "string" },
+            "retryable": { "type": "boolean" },
+            "details": {}
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}

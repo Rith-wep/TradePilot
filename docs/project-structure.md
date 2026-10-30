@@ -3,6 +3,10 @@
 Related guides: [developer onboarding](onboarding.md) and [package dependency
 map](package-dependencies.md).
 
+The `tradepilot.contracts` package contains trusted, versioned machine adapters
+around existing domain verification APIs. Contract schemas live in
+`research/contracts/`; they are transport boundaries, not research logic.
+
 ## Repository map
 
 ```text

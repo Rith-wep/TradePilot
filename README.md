@@ -2,7 +2,7 @@
 
 > **Every setup comes with its evidence.**
 
-**Status:** Research foundation implemented through Phase 4.5 Step 4
+**Status:** Research and backend foundations implemented through Phase 5 Step 4
 **Product:** Evidence-based forex research and trading decision-support SaaS  
 **Initial audience:** Beginner and intermediate forex traders  
 **Initial markets:** EUR/USD and GBP/USD, H1 candles  

@@ -45,12 +45,13 @@ python -m unittest discover -s tests -p test_identity_golden.py -v
 | `tradepilot-strategy` | Detect versioned candidate setups without performance claims |
 | `tradepilot-research-report` | Generate or verify an immutable candidate report |
 | `tradepilot-backtest` | Run the deterministic simulator and emit an execution trace |
+| `tradepilot-verify-artifact` | Verify one immutable dataset or candidate report through the machine contract |
 
 Use `COMMAND --help` for command-specific arguments. OANDA commands read
 credentials from `OANDA_API_TOKEN` and `OANDA_ACCOUNT_ID`; secrets must not be
 placed in source files, manifests or reports.
 
-The 11-command inventory is defined in `research/pyproject.toml` and guarded by
+The 12-command inventory is defined in `research/pyproject.toml` and guarded by
 `tests/test_cli_entry_points.py`. After changing entry points, rerun the editable
 install so the virtual environment's generated command wrappers are refreshed.
 

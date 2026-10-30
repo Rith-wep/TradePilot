@@ -42,6 +42,23 @@ The command writes a deterministic JSON quality report. It exits with status
 `0` when there are no validation errors and status `1` when errors are found.
 CSV parse or file errors exit with status `2`.
 
+## Verify an immutable artifact through the machine contract
+
+`tradepilot-verify-artifact` reads one bounded JSON request from stdin and
+writes one versioned JSON response to stdout. Only immutable IDs and validated
+dataset locator fields are accepted; approved storage roots are process
+configuration, not request data.
+
+```powershell
+tradepilot-verify-artifact `
+  --dataset-root data `
+  --report-root reports `
+  < fixtures/contracts/verify-dataset-request.json
+```
+
+The complete v1 schema, exit codes, examples, and security assumptions are in
+`../docs/contracts/artifact-verification-v1.md`.
+
 ## Provider architecture
 
 `MarketDataProvider` is a small protocol that accepts an instrument, timeframe,

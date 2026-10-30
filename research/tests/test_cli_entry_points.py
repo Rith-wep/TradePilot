@@ -16,6 +16,7 @@ EXPECTED_ENTRY_POINTS = {
     "tradepilot-strategy": "tradepilot.strategies.cli:main",
     "tradepilot-research-report": "tradepilot.reporting.cli:main",
     "tradepilot-backtest": "tradepilot.backtesting.cli:main",
+    "tradepilot-verify-artifact": "tradepilot.contracts.cli:main",
 }
 
 

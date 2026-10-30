@@ -1,0 +1,1 @@
+{"contract_version":"tradepilot-artifact-verification/v1","error":{"code":"ARTIFACT_NOT_FOUND","message":"candidate report artifact does not exist","retryable":false},"request_id":"fixture-report-1","status":"ERROR"}

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tradepilot.local/contracts/artifact-verification-v1.request.schema.json",
+  "title": "TradePilot artifact verification request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "request_id", "operation", "artifact"],
+  "properties": {
+    "contract_version": { "const": "tradepilot-artifact-verification/v1" },
+    "request_id": { "type": "string", "pattern": "^[A-Za-z0-9._:-]{1,128}$" },
+    "operation": { "const": "verify_artifact" },
+    "artifact": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "artifact_id", "provider", "instrument", "timeframe"],
+          "properties": {
+            "kind": { "const": "dataset" },
+            "artifact_id": { "$ref": "#/$defs/sha256" },
+            "provider": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+            "instrument": { "type": "string", "pattern": "^[A-Z]{6,12}$" },
+            "timeframe": { "type": "string", "pattern": "^[A-Z][A-Z0-9]{0,15}$" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "artifact_id"],
+          "properties": {
+            "kind": { "const": "candidate_report" },
+            "artifact_id": { "$ref": "#/$defs/sha256" }
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}
