@@ -6,14 +6,14 @@ from pathlib import Path
 from tradepilot.data.integrity import IntegrityReport
 from tradepilot.data.readiness import PipelineEvidence
 from tradepilot.data.sessions import TradingSessionCalendar
-from tradepilot.indicators import atr, ema, rsi
-from tradepilot.reporting.models import IndicatorParameter
 from tradepilot.reporting.storage import ReportStorage, ReportStorageError, report_identifier, verify_report
-from tradepilot.reporting.validation import build_research_run, resolve_implementation_revision
-from tradepilot.strategies.base import configuration_fingerprint
-from tradepilot.strategies.breakout import BreakoutConfig, PriceRangeBreakoutStrategy
-from tradepilot.strategies.models import StrategyIndicators
-from tradepilot.strategies.pullback import EmaRsiPullbackStrategy, PullbackConfig
+from tradepilot.reporting.validation import resolve_implementation_revision
+from tradepilot.strategies.breakout import BreakoutConfig
+from tradepilot.strategies.pullback import PullbackConfig
+from tradepilot.workflows.research_run import (
+    build_candidate_research_run,
+    evaluate_candidate_research,
+)
 
 
 def verify_candidate_pipeline(
@@ -25,40 +25,17 @@ def verify_candidate_pipeline(
     created_at: datetime,
 ) -> tuple[PipelineEvidence, ...]:
     """Run unchanged default strategies; zero candidates are a valid outcome."""
-    values = integrity.candles
-    configurations = (
-        (PriceRangeBreakoutStrategy(BreakoutConfig()), BreakoutConfig(), StrategyIndicators(), ()),
-        (
-            EmaRsiPullbackStrategy(PullbackConfig()), PullbackConfig(),
-            StrategyIndicators(
-                ema=ema(values, 200, "mid"),
-                rsi=rsi(values, 14, "mid"),
-                atr=atr(values, 14, "mid"),
-            ),
-            (
-                IndicatorParameter("EMA", 200, "mid"),
-                IndicatorParameter("RSI", 14, "mid"),
-                IndicatorParameter("ATR", 14, "mid"),
-            ),
-        ),
-    )
+    configurations = (BreakoutConfig(), PullbackConfig())
     evidence = []
     storage = ReportStorage(report_root)
-    for strategy, config, indicators, parameters in configurations:
-        fingerprint = configuration_fingerprint(strategy.name, strategy.version, config, calendar.calendar_id)
-        setups = strategy.detect(values, indicators, calendar)
-        first = build_research_run(
-            integrity, strategy_name=strategy.name, strategy_version=strategy.version,
-            configuration_fingerprint=fingerprint, strategy_configuration=config,
-            indicator_parameters=parameters, session_calendar_id=calendar.calendar_id,
-            reject_unexpected_gaps=config.reject_unexpected_gaps, setups=setups,
+    for config in configurations:
+        research = evaluate_candidate_research(integrity, calendar, config)
+        first = build_candidate_research_run(
+            integrity, calendar, research,
             created_at=created_at, implementation_revision=implementation_revision,
         )
-        second = build_research_run(
-            integrity, strategy_name=strategy.name, strategy_version=strategy.version,
-            configuration_fingerprint=fingerprint, strategy_configuration=config,
-            indicator_parameters=parameters, session_calendar_id=calendar.calendar_id,
-            reject_unexpected_gaps=config.reject_unexpected_gaps, setups=setups,
+        second = build_candidate_research_run(
+            integrity, calendar, research,
             created_at=created_at, implementation_revision=implementation_revision,
         )
         first_id = report_identifier(first.content)
@@ -67,8 +44,9 @@ def verify_candidate_pipeline(
         verification = verify_report(stored.report_path)
         reproducible = first_id == second_id == stored.report_id and verification.valid
         evidence.append(PipelineEvidence(
-            strategy.name, strategy.version, fingerprint, stored.report_id,
-            len(setups), second_id, reproducible,
+            research.strategy_name, research.strategy_version,
+            research.configuration_fingerprint, stored.report_id,
+            len(research.setups), second_id, reproducible,
         ))
     return tuple(evidence)
 

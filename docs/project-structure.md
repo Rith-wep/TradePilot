@@ -58,7 +58,9 @@ tradepilot/
 ├── backtesting/                    # execution domain and simulator
 ├── accounting/                     # financial reconstruction and metrics
 ├── validation/                     # research validation and governance
-└── workflows/                      # cross-domain application orchestration
+└── workflows/
+    ├── research_run.py             # shared candidate research construction
+    └── real_data_readiness.py      # real-data verification workflow
 ```
 
 `tradepilot.data.validation` means candle-quality validation.

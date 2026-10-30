@@ -10,11 +10,10 @@ from typing import Sequence
 
 from tradepilot.data.integrity import verify_dataset
 from tradepilot.data.sessions import WeeklySessionCalendar
-from tradepilot.indicators import atr, ema, rsi
 from tradepilot.strategies.base import StrategyInputError
-from tradepilot.strategies.breakout import BreakoutConfig, PriceRangeBreakoutStrategy
-from tradepilot.strategies.models import StrategyIndicators
-from tradepilot.strategies.pullback import EmaRsiPullbackStrategy, PullbackConfig
+from tradepilot.strategies.breakout import BreakoutConfig
+from tradepilot.strategies.pullback import PullbackConfig
+from tradepilot.workflows.research_run import evaluate_candidate_research
 
 
 def _json_default(value: object) -> object:
@@ -66,11 +65,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 atr_period=args.atr_period,
                 minimum_breakout_atr=threshold,
             )
-            strategy = PriceRangeBreakoutStrategy(config)
-            indicators = StrategyIndicators(
-                atr=atr(integrity.candles, config.atr_period, config.price_basis)
-                if threshold is not None else None
-            )
         else:
             config = PullbackConfig(
                 ema_period=args.ema_period,
@@ -78,23 +72,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                 atr_period=args.atr_period,
                 price_basis=args.price_basis,
             )
-            strategy = EmaRsiPullbackStrategy(config)
-            indicators = StrategyIndicators(
-                ema=ema(integrity.candles, config.ema_period, config.price_basis),
-                rsi=rsi(integrity.candles, config.rsi_period, config.price_basis),
-                atr=atr(integrity.candles, config.atr_period, config.price_basis),
-            )
-        setups = strategy.detect(integrity.candles, indicators, calendar)
+        research = evaluate_candidate_research(integrity, calendar, config)
     except (ValueError, InvalidOperation, StrategyInputError) as exc:
         print(json.dumps({"error": str(exc)}, sort_keys=True))
         return 2
     print(json.dumps({
         "dataset_id": integrity.dataset_id,
-        "strategy_name": strategy.name,
-        "strategy_version": strategy.version,
+        "strategy_name": research.strategy_name,
+        "strategy_version": research.strategy_version,
         "configuration": asdict(config),
-        "candidate_count": len(setups),
-        "setups": [setup.to_dict() for setup in setups],
+        "candidate_count": len(research.setups),
+        "setups": [setup.to_dict() for setup in research.setups],
     }, default=_json_default, indent=2, sort_keys=True))
     return 0
 

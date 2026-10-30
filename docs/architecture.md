@@ -35,6 +35,8 @@ data -> indicators -> strategies -> reporting -> backtesting -> accounting
 Backtesting legitimately consumes candidate reports and verified datasets.
 Accounting consumes immutable simulation results. Research validation composes
 all lower layers. CLI modules may compose their package and lower layers.
+CLI adapter modules may also invoke application workflows, but domain modules
+must not import workflows or CLI modules.
 
 Known boundary exceptions are documented rather than hidden:
 
@@ -46,6 +48,16 @@ the former `tradepilot.reporting.canonical` path remains a compatibility
 re-export. Real-data candidate verification lives in
 `tradepilot.workflows.real_data_readiness`; the former
 `tradepilot.data.readiness_pipeline` path remains a compatibility re-export.
+
+`tradepilot.workflows.research_run` centralizes only the shared construction of
+strategy-required indicators, candidate setups, configuration fingerprints and
+immutable candidate runs. CLI parsing, output formatting, storage policy and
+readiness reproducibility checks remain with their existing adapters/workflows.
+
+These boundaries are enforced by `tests/test_dependency_boundaries.py`. The
+only domain-to-workflow exception is the documented
+`data/readiness_pipeline.py` compatibility shim. Files named `cli.py` or
+`*_cli.py` are interface adapters and may compose workflows.
 
 ## Domain invariants
 

@@ -10,18 +10,18 @@ from typing import Sequence
 
 from tradepilot.data.integrity import verify_dataset
 from tradepilot.data.sessions import WeeklySessionCalendar
-from tradepilot.indicators import atr, ema, rsi
-from tradepilot.reporting.models import IndicatorParameter
 from tradepilot.reporting.storage import ReportStorage, ReportStorageError, verify_report
 from tradepilot.reporting.validation import (
     ReportValidationError,
-    build_research_run,
     resolve_implementation_revision,
 )
-from tradepilot.strategies.base import StrategyInputError, configuration_fingerprint
-from tradepilot.strategies.breakout import BreakoutConfig, PriceRangeBreakoutStrategy
-from tradepilot.strategies.models import StrategyIndicators
-from tradepilot.strategies.pullback import EmaRsiPullbackStrategy, PullbackConfig
+from tradepilot.strategies.base import StrategyInputError
+from tradepilot.strategies.breakout import BreakoutConfig
+from tradepilot.strategies.pullback import PullbackConfig
+from tradepilot.workflows.research_run import (
+    build_candidate_research_run,
+    evaluate_candidate_research,
+)
 
 
 def _calendar(args: argparse.Namespace) -> WeeklySessionCalendar:
@@ -76,42 +76,15 @@ def _generate(args: argparse.Namespace) -> int:
                 lookback=args.lookback, price_basis=args.price_basis,
                 atr_period=args.atr_period, minimum_breakout_atr=threshold,
             )
-            strategy = PriceRangeBreakoutStrategy(config)
-            atr_series = atr(integrity.candles, config.atr_period, config.price_basis) if threshold is not None else None
-            supplied = StrategyIndicators(atr=atr_series)
-            parameters = (
-                (IndicatorParameter("ATR", config.atr_period, config.price_basis),)
-                if threshold is not None else ()
-            )
         else:
             config = PullbackConfig(
                 ema_period=args.ema_period, rsi_period=args.rsi_period,
                 atr_period=args.atr_period, price_basis=args.price_basis,
             )
-            strategy = EmaRsiPullbackStrategy(config)
-            supplied = StrategyIndicators(
-                ema=ema(integrity.candles, config.ema_period, config.price_basis),
-                rsi=rsi(integrity.candles, config.rsi_period, config.price_basis),
-                atr=atr(integrity.candles, config.atr_period, config.price_basis),
-            )
-            parameters = (
-                IndicatorParameter("EMA", config.ema_period, config.price_basis),
-                IndicatorParameter("RSI", config.rsi_period, config.price_basis),
-                IndicatorParameter("ATR", config.atr_period, config.price_basis),
-            )
-        fingerprint = configuration_fingerprint(strategy.name, strategy.version, config, calendar.calendar_id)
-        setups = strategy.detect(integrity.candles, supplied, calendar)
+        research = evaluate_candidate_research(integrity, calendar, config)
         revision = resolve_implementation_revision(Path.cwd())
-        run = build_research_run(
-            integrity,
-            strategy_name=strategy.name,
-            strategy_version=strategy.version,
-            configuration_fingerprint=fingerprint,
-            strategy_configuration=config,
-            indicator_parameters=parameters,
-            session_calendar_id=calendar.calendar_id,
-            reject_unexpected_gaps=config.reject_unexpected_gaps,
-            setups=setups,
+        run = build_candidate_research_run(
+            integrity, calendar, research,
             created_at=datetime.now(timezone.utc),
             implementation_revision=revision,
         )
@@ -122,13 +95,13 @@ def _generate(args: argparse.Namespace) -> int:
     print(json.dumps({
         "dataset_id": integrity.dataset_id,
         "dataset_checksum": integrity.dataset_checksum,
-        "strategy_name": strategy.name,
-        "strategy_version": strategy.version,
+        "strategy_name": research.strategy_name,
+        "strategy_version": research.strategy_version,
         "configuration": asdict(config),
-        "configuration_fingerprint": fingerprint,
+        "configuration_fingerprint": research.configuration_fingerprint,
         "implementation_revision": revision,
         "report_id": stored.report_id,
-        "signal_count": len(setups),
+        "signal_count": len(research.setups),
         "report_path": str(stored.report_path),
         "run_metadata_path": str(stored.run_metadata_path),
         "reused": stored.reused,
