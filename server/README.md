@@ -1,8 +1,10 @@
 # TradePilot backend foundation
 
 This directory contains the Phase 5 Node.js/Express API and PostgreSQL catalog
-foundation. It exposes health checks only. It does not invoke Python, expose
-research artifacts, authenticate users, or produce live trading data.
+foundation. It exposes health checks only. Its internal artifact verifier can
+invoke the trusted Python verification contract, but it is not exposed through
+HTTP. The server does not run research, authenticate users, or produce live
+trading data.
 
 ## Requirements
 
@@ -49,6 +51,7 @@ src/
 |-- http/middleware/     # request IDs, logs, 404 and error handling
 |-- http/routes/         # Express routers
 |-- database/            # pg pool, migration runner and catalog access
+|-- verification/        # internal, schema-checked Python contract adapter
 |-- logging/             # structured JSON logger
 |-- app.ts               # dependency-injected Express composition
 `-- server.ts            # process lifecycle and graceful shutdown
@@ -101,3 +104,23 @@ schema.
 Do not implement research formulas in this server. Future research execution
 must use the approved versioned Python boundary and preserve Python-generated
 dataset and report identities.
+
+## Internal artifact verification
+
+`ArtifactVerifierService` sends one `tradepilot-artifact-verification/v1`
+request to the fixed Python module `tradepilot.contracts`. The child process is
+launched with an argument array and `shell: false`; clients cannot supply an
+executable, module, path, or argument. Configure the trusted executable,
+working directory, schema directory, and artifact roots with the
+`TRADEPILOT_*` values shown in `.env.example`.
+
+Both messages are validated against the schemas in `research/contracts`.
+Input, stdout, stderr, execution time, and concurrent children are bounded.
+Timeouts and limit violations terminate the process tree. Contract errors are
+mapped to internal typed errors whose messages contain no filesystem paths,
+credentials, Python diagnostics, or stack traces. Exact Decimal values remain
+JSON strings. The child receives a small operating-system environment allowlist
+rather than database credentials or the server's complete environment.
+
+This service is deliberately not wired into Express or PostgreSQL. Verified
+metadata must not be cataloged until a later, separately approved workflow.

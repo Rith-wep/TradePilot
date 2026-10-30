@@ -1,3 +1,5 @@
+import { isAbsolute, resolve } from "node:path";
+
 export const NODE_ENVIRONMENTS = ["development", "test", "production"] as const;
 export const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
 
@@ -11,6 +13,19 @@ export interface AppConfig {
   readonly databaseUrl: string;
   readonly databaseConnectTimeoutMs: number;
   readonly databaseReadyTimeoutMs: number;
+  readonly artifactVerifier: ArtifactVerifierConfig;
+}
+export interface ArtifactVerifierConfig {
+  readonly pythonExecutable: string;
+  readonly pythonWorkingDirectory: string;
+  readonly schemaDirectory: string;
+  readonly datasetRoot: string;
+  readonly reportRoot: string;
+  readonly timeoutMs: number;
+  readonly maxInputBytes: number;
+  readonly maxOutputBytes: number;
+  readonly maxErrorBytes: number;
+  readonly maxConcurrency: number;
 }
 
 export class ConfigurationError extends Error {
@@ -73,7 +88,28 @@ function databaseUrl(value: string | undefined): string {
   return value;
 }
 
+function nonEmpty(name: string, value: string | undefined, fallback: string): string {
+  const candidate = value ?? fallback;
+  if (candidate.trim() === "") {
+    throw new ConfigurationError(`${name} must not be empty`);
+  }
+  return candidate;
+}
+
+function absolutePath(name: string, value: string | undefined, fallback: string): string {
+  const candidate = resolve(nonEmpty(name, value, fallback));
+  if (!isAbsolute(candidate)) {
+    throw new ConfigurationError(`${name} must resolve to an absolute path`);
+  }
+  return candidate;
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
+  const researchRoot = absolutePath(
+    "TRADEPILOT_PYTHON_WORKING_DIRECTORY",
+    env["TRADEPILOT_PYTHON_WORKING_DIRECTORY"],
+    resolve(process.cwd(), "..", "research"),
+  );
   return Object.freeze({
     nodeEnv: enumValue("NODE_ENV", env["NODE_ENV"], "development", NODE_ENVIRONMENTS),
     port: portValue(env["PORT"]),
@@ -85,5 +121,45 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     databaseReadyTimeoutMs: positiveInteger(
       "DATABASE_READY_TIMEOUT_MS", env["DATABASE_READY_TIMEOUT_MS"], 1_000,
     ),
+    artifactVerifier: Object.freeze({
+      pythonExecutable: nonEmpty(
+        "TRADEPILOT_PYTHON_EXECUTABLE", env["TRADEPILOT_PYTHON_EXECUTABLE"], "python",
+      ),
+      pythonWorkingDirectory: researchRoot,
+      schemaDirectory: absolutePath(
+        "TRADEPILOT_CONTRACT_SCHEMA_DIRECTORY",
+        env["TRADEPILOT_CONTRACT_SCHEMA_DIRECTORY"],
+        resolve(researchRoot, "contracts"),
+      ),
+      datasetRoot: absolutePath(
+        "TRADEPILOT_DATA_ROOT", env["TRADEPILOT_DATA_ROOT"], resolve(researchRoot, "data"),
+      ),
+      reportRoot: absolutePath(
+        "TRADEPILOT_REPORT_ROOT", env["TRADEPILOT_REPORT_ROOT"], resolve(researchRoot, "reports"),
+      ),
+      timeoutMs: positiveInteger(
+        "TRADEPILOT_VERIFIER_TIMEOUT_MS", env["TRADEPILOT_VERIFIER_TIMEOUT_MS"], 10_000,
+      ),
+      maxInputBytes: positiveInteger(
+        "TRADEPILOT_VERIFIER_MAX_INPUT_BYTES",
+        env["TRADEPILOT_VERIFIER_MAX_INPUT_BYTES"],
+        65_536,
+      ),
+      maxOutputBytes: positiveInteger(
+        "TRADEPILOT_VERIFIER_MAX_OUTPUT_BYTES",
+        env["TRADEPILOT_VERIFIER_MAX_OUTPUT_BYTES"],
+        1_048_576,
+      ),
+      maxErrorBytes: positiveInteger(
+        "TRADEPILOT_VERIFIER_MAX_ERROR_BYTES",
+        env["TRADEPILOT_VERIFIER_MAX_ERROR_BYTES"],
+        16_384,
+      ),
+      maxConcurrency: positiveInteger(
+        "TRADEPILOT_VERIFIER_MAX_CONCURRENCY",
+        env["TRADEPILOT_VERIFIER_MAX_CONCURRENCY"],
+        2,
+      ),
+    }),
   });
 }

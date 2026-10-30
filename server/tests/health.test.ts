@@ -12,6 +12,18 @@ const config = {
   databaseUrl: "postgresql://unused",
   databaseConnectTimeoutMs: 100,
   databaseReadyTimeoutMs: 100,
+  artifactVerifier: {
+    pythonExecutable: "python",
+    pythonWorkingDirectory: "C:\\trusted\\research",
+    schemaDirectory: "C:\\trusted\\research\\contracts",
+    datasetRoot: "C:\\trusted\\research\\data",
+    reportRoot: "C:\\trusted\\research\\reports",
+    timeoutMs: 100,
+    maxInputBytes: 65_536,
+    maxOutputBytes: 1_048_576,
+    maxErrorBytes: 16_384,
+    maxConcurrency: 2,
+  },
 };
 
 function appWithDatabase(result: boolean) {

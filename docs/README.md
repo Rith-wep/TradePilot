@@ -31,6 +31,7 @@ reproduce it, and see what remains unfinished.
 | 5 | 2 | [Backend Foundation](phases/phase-5-step-2.md) | Complete |
 | 5 | 3 | [PostgreSQL Foundation](phases/phase-5-step-3.md) | Complete |
 | 5 | 4 | [Trusted Python Artifact Verification Contract](phases/phase-5-step-4.md) | Complete |
+| 5 | 5 | [Controlled Node/Python Verification Adapter](phases/phase-5-step-5.md) | Complete |
 
 ## Architecture and development
 
