@@ -1,5 +1,8 @@
 # Development guide
 
+New contributors should begin with the concise [developer onboarding
+guide](onboarding.md), then use this page as the command and review reference.
+
 ## Requirements and setup
 
 - Python 3.12 or newer
@@ -47,6 +50,10 @@ Use `COMMAND --help` for command-specific arguments. OANDA commands read
 credentials from `OANDA_API_TOKEN` and `OANDA_ACCOUNT_ID`; secrets must not be
 placed in source files, manifests or reports.
 
+The 11-command inventory is defined in `research/pyproject.toml` and guarded by
+`tests/test_cli_entry_points.py`. After changing entry points, rerun the editable
+install so the virtual environment's generated command wrappers are refreshed.
+
 ## Local directories
 
 - `fixtures/`: committed synthetic data and non-runnable templates only.
@@ -78,6 +85,12 @@ Refactoring alone is not a reason to update them.
 ## Current tooling limitations
 
 There is no committed CI workflow, formatter, linter, static type checker,
-coverage threshold or development dependency group yet. Adding those should be
-a separate behavior-neutral maintenance step so failures and formatting churn
-remain reviewable.
+coverage threshold or development dependency group yet. The current test stack
+needs no additional development dependency: `unittest` and the new TOML/entry
+point check use the Python 3.12 standard library. The minimal next tooling step
+is a CI job that performs editable installation and runs the documented gates.
+Formatter, linter, type checker and coverage dependencies should be proposed
+with their configurations and adoption policy, not added unused.
+
+The current architectural issues and backend integration gates are classified
+in the [backend readiness review](backend-readiness.md).

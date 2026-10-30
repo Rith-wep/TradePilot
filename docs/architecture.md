@@ -59,6 +59,9 @@ only domain-to-workflow exception is the documented
 `data/readiness_pipeline.py` compatibility shim. Files named `cli.py` or
 `*_cli.py` are interface adapters and may compose workflows.
 
+See [Package dependency map](package-dependencies.md) for the allowed import
+direction, package-specific rules, compatibility shims, and enforcement gates.
+
 ## Domain invariants
 
 - Candle timestamps are UTC candle-opening times.

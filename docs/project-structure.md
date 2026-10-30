@@ -1,5 +1,8 @@
 # Project structure
 
+Related guides: [developer onboarding](onboarding.md) and [package dependency
+map](package-dependencies.md).
+
 ## Repository map
 
 ```text

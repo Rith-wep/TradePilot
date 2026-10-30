@@ -22,6 +22,9 @@ presented as evidence of profitability.
 Developer references:
 
 - [Architecture](docs/architecture.md)
+- [Developer onboarding](docs/onboarding.md)
+- [Package dependency map](docs/package-dependencies.md)
+- [Backend readiness review](docs/backend-readiness.md)
 - [Project structure](docs/project-structure.md)
 - [Data flow](docs/data-flow.md)
 - [Development and command reference](docs/development.md)
