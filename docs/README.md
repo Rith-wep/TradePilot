@@ -22,6 +22,13 @@ reproduce it, and see what remains unfinished.
 | 4 | 2 | [Real-Data Verification and Research Readiness](phases/phase-4-step-2.md) | Complete |
 | 4 | CSV import | [Dukascopy Paired CSV Import](phases/phase-4-dukascopy-csv-import.md) | Complete |
 | 4 | Multi-year CSV | [Dukascopy Multi-Year Batch Import](phases/phase-4-dukascopy-multiyear.md) | Complete |
+| 4.5 | 1 | [Architecture Documentation and Identity Protection](phases/phase-4-5-step-1.md) | Complete |
+| 4.5 | 2 | [Shared Canonical Utilities](phases/phase-4-5-step-2.md) | Complete |
+| 4.5 | 3 | [Workflow Separation](phases/phase-4-5-step-3.md) | Complete |
+| 4.5 | 4 | [Shared Research Workflow](phases/phase-4-5-step-4.md) | Complete |
+| 4.5 | 5 | [Developer Readiness and Final Architecture Review](phases/phase-4-5-step-5.md) | Complete |
+| 5 | 1 | [Backend Architecture Design](phases/phase-5-step-1.md) | Planning complete |
+| 5 | 2 | [Backend Foundation](phases/phase-5-step-2.md) | Complete |
 
 ## Architecture and development
 
@@ -32,11 +39,17 @@ reproduce it, and see what remains unfinished.
 
 ## Report convention
 
-Create one Markdown file after every completed step under `docs/phases/` using:
+Create one Markdown file after every approved step, including planning-only or
+blocked steps, under `docs/phases/` using:
 
 ```text
 phase-{phase-number}-step-{step-number}.md
 ```
+
+For decimal milestone numbers, replace the decimal point with a hyphen, for
+example `phase-4-5-step-1.md`. Add the report to the table in the same change.
+Use an accurate status such as `Complete`, `Planning complete`, or `Blocked`;
+never label unimplemented work complete.
 
 Each report should contain:
 
