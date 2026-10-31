@@ -32,11 +32,19 @@ const emptyCatalog = {
   async listInstruments() { return []; },
   async listDatasets() { return []; },
   async listCandidateReports() { return []; },
+  async getInstrument() { return undefined; },
+  async getDataset() { return undefined; },
+  async getCandidateReport() { return undefined; },
+};
+const emptyEvidence = {
+  async list() { throw new Error("unused"); },
+  async get() { throw new Error("unused"); },
 };
 
 function appWithDatabase(result: boolean) {
   return createApp({
-    config, logger: silentLogger, database: { async check() { return result; } }, catalog: emptyCatalog,
+    config, logger: silentLogger, database: { async check() { return result; } },
+    catalog: emptyCatalog, evidence: emptyEvidence,
   });
 }
 
@@ -85,6 +93,7 @@ test("liveness does not query the database", async () => {
     logger: silentLogger,
     database: { async check() { checks += 1; return false; } },
     catalog: emptyCatalog,
+    evidence: emptyEvidence,
   });
   await request(isolated).get("/health/live").expect(200);
   assert.equal(checks, 0);

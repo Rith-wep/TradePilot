@@ -39,6 +39,11 @@ Endpoints:
 - `GET /api/v1/instruments`: verified instrument metadata.
 - `GET /api/v1/datasets`: immutable historical dataset metadata.
 - `GET /api/v1/candidate-reports`: historical research-candidate metadata.
+- `GET /api/v1/instruments/:symbol`: one verified instrument.
+- `GET /api/v1/datasets/:datasetId`: one immutable historical dataset.
+- `GET /api/v1/candidate-reports/:reportId`: one candidate-report record.
+- `GET /api/v1/candidate-reports/:reportId/candidates`: verified candidate evidence.
+- `GET /api/v1/evidence/:candidateEvidenceId`: one verified evidence projection.
 
 All endpoints use the `tradepilot-api/v1` response envelope and return an
 `x-request-id` header. Requests may provide a safe `x-request-id`; otherwise the
@@ -55,6 +60,12 @@ Until authentication is implemented, `HOST` must be `127.0.0.1`, `::1`, or
 loopback. They expose no storage keys, filesystem paths, raw Parquet, Python
 diagnostics, or verification internals. Candidate reports are explicitly
 historical research evidence and never live trading signals.
+
+Candidate evidence is never read directly by Node. The bounded Python evidence
+contract verifies the immutable report first, then projects supported fields.
+Evidence responses include `classification: "HISTORICAL_RESEARCH"` and
+`liveSignal: false`, and omit canonical report JSON and local paths. See
+`docs/contracts/candidate-evidence-api-v1.md`.
 
 ## Structure
 

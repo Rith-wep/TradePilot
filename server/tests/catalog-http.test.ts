@@ -57,6 +57,13 @@ const catalog: CatalogReadStore = {
   async listInstruments(page) { return select(instruments, page, (item) => item.symbol); },
   async listDatasets(page) { return select(datasets, page, (item) => item.datasetId); },
   async listCandidateReports(page) { return select(reports, page, (item) => item.reportId); },
+  async getInstrument(symbol) { return instruments.find((item) => item.symbol === symbol); },
+  async getDataset(datasetId) { return datasets.find((item) => item.datasetId === datasetId); },
+  async getCandidateReport(reportId) { return reports.find((item) => item.reportId === reportId); },
+};
+const unusedEvidence = {
+  async list() { throw new Error("unused"); },
+  async get() { throw new Error("unused"); },
 };
 
 function config(nodeEnv: AppConfig["nodeEnv"] = "test"): AppConfig {
@@ -90,6 +97,7 @@ function app(store: CatalogReadStore = catalog, nodeEnv: AppConfig["nodeEnv"] = 
     logger: silentLogger,
     database: { async check() { return true; } },
     catalog: store,
+    evidence: unusedEvidence,
   });
 }
 
@@ -124,11 +132,27 @@ test("cursor pagination is deterministic and endpoint-specific", async () => {
     .expect(400);
 });
 
+test("ID-based detail routes validate identifiers and return catalog metadata", async () => {
+  const instrument = await request(app()).get("/api/v1/instruments/EURUSD").expect(200);
+  assert.equal(instrument.body.data.pipSize, "0.0001");
+  const dataset = await request(app()).get(`/api/v1/datasets/${ids[0]}`).expect(200);
+  assert.equal(dataset.body.data.datasetId, ids[0]);
+  assert.equal(dataset.body.data.dataClassification, "HISTORICAL");
+  const report = await request(app()).get(`/api/v1/candidate-reports/${ids[0]}`).expect(200);
+  assert.equal(report.body.data.liveSignal, false);
+  await request(app()).get("/api/v1/instruments/eurusd").expect(400);
+  await request(app()).get("/api/v1/datasets/not-an-id").expect(400);
+  await request(app()).get(`/api/v1/datasets/${"f".repeat(64)}`).expect(404);
+});
+
 test("empty, invalid, missing, database-failure, and nonlocal cases fail safely", async () => {
   const empty: CatalogReadStore = {
     async listInstruments() { return []; },
     async listDatasets() { return []; },
     async listCandidateReports() { return []; },
+    async getInstrument() { return undefined; },
+    async getDataset() { return undefined; },
+    async getCandidateReport() { return undefined; },
   };
   const emptyResponse = await request(app(empty)).get("/api/v1/datasets").expect(200);
   assert.deepEqual(emptyResponse.body.data, { items: [], nextCursor: null, historicalOnly: true });
@@ -137,12 +161,15 @@ test("empty, invalid, missing, database-failure, and nonlocal cases fail safely"
     const response = await request(app()).get(`/api/v1/datasets?${query}`).expect(400);
     assert.equal(response.body.error.code, "VALIDATION_ERROR");
   }
-  await request(app()).get("/api/v1/datasets/missing").expect(404);
+  await request(app()).get("/api/v1/datasets/missing").expect(400);
 
   const failed: CatalogReadStore = {
     async listInstruments() { throw new Error("database secret"); },
     async listDatasets() { throw new Error("database secret"); },
     async listCandidateReports() { throw new Error("database secret"); },
+    async getInstrument() { throw new Error("database secret"); },
+    async getDataset() { throw new Error("database secret"); },
+    async getCandidateReport() { throw new Error("database secret"); },
   };
   const unavailable = await request(app(failed)).get("/api/v1/datasets").expect(503);
   assert.deepEqual(unavailable.body.error, {

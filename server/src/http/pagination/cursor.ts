@@ -6,7 +6,7 @@ const ENCODED_CURSOR = /^[A-Za-z0-9_-]{1,512}$/u;
 const SHA256 = /^[0-9a-f]{64}$/u;
 const INSTRUMENT = /^[A-Z]{6,12}$/u;
 
-export type CursorKind = "instruments" | "datasets" | "candidate-reports";
+export type CursorKind = "instruments" | "datasets" | "candidate-reports" | "report-candidates";
 
 export interface PageQuery {
   readonly limit: number;
@@ -49,7 +49,9 @@ export function parsePageQuery(
   if (Object.keys(value).sort().join(",") !== "after,kind,version"
     || value["version"] !== 1 || value["kind"] !== kind
     || typeof value["after"] !== "string"
-    || !(kind === "instruments" ? INSTRUMENT : SHA256).test(value["after"])) {
+    || !(kind === "instruments" ? INSTRUMENT
+      : kind === "report-candidates" ? /^[0-9a-f]{64}:[0-9]{1,10}$/u
+      : SHA256).test(value["after"])) {
     validationError("cursor is invalid.");
   }
   return { limit, after: value["after"] };

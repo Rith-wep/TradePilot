@@ -3,13 +3,15 @@ import { createApp } from "./app.js";
 import { loadConfig } from "./config/env.js";
 import { createDatabase } from "./database/database.js";
 import { PostgresCatalogReader } from "./database/catalog-read-repository.js";
+import { CandidateEvidenceService } from "./evidence/evidence-service.js";
 import { createJsonLogger } from "./logging/logger.js";
 
 const config = loadConfig();
 const logger = createJsonLogger(config.logLevel);
 const database = createDatabase(config);
 const catalog = new PostgresCatalogReader(database.pool);
-const app = createApp({ config, logger, database, catalog });
+const evidence = new CandidateEvidenceService(config.artifactVerifier);
+const app = createApp({ config, logger, database, catalog, evidence });
 const server = createServer(app);
 
 server.listen(config.port, config.host, () => {

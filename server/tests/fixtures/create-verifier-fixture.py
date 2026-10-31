@@ -20,7 +20,10 @@ if len(sys.argv) > 2:
 
     _, integrity, calendar, config, strategy, fingerprint, setups = create_context(str(data_root))
     stored_report = ReportStorage(sys.argv[2]).save(
-        build_run(integrity, calendar, config, strategy, fingerprint, setups)
+        build_run(
+            integrity, calendar, config, strategy, fingerprint,
+            () if len(sys.argv) > 3 and sys.argv[3] == "empty" else setups,
+        )
     )
     print(json.dumps({
         "dataset_id": integrity.dataset_id,

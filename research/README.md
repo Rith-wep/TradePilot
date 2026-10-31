@@ -59,6 +59,12 @@ tradepilot-verify-artifact `
 The complete v1 schema, exit codes, examples, and security assumptions are in
 `../docs/contracts/artifact-verification-v1.md`.
 
+The internal `tradepilot-candidate-evidence/v1` subprocess contract separately
+verifies an immutable candidate report and projects a bounded candidate list or
+one deterministic evidence record. It accepts report or evidence IDs only,
+never paths, and does not modify canonical reports or identities. The HTTP
+semantics are documented in `../docs/contracts/candidate-evidence-api-v1.md`.
+
 ## Provider architecture
 
 `MarketDataProvider` is a small protocol that accepts an instrument, timeframe,

@@ -67,6 +67,10 @@ test("PostgreSQL catalog endpoints return only ordered verified public metadata"
     logger: silentLogger,
     database: { async check() { return true; } },
     catalog,
+    evidence: {
+      async list() { throw new Error("unused"); },
+      async get() { throw new Error("unused"); },
+    },
   });
   const empty = await request(app).get("/api/v1/datasets").expect(200);
   assert.deepEqual(empty.body.data.items, []);
@@ -128,4 +132,8 @@ test("PostgreSQL catalog endpoints return only ordered verified public metadata"
   assert.equal(reports.body.data.items.length, 2);
   assert.equal(reports.body.data.items[0].liveSignal, false);
   assert.equal(reports.body.data.items[0].schemaVersion, "tradepilot-candidate-report-v1");
+  await request(app).get("/api/v1/instruments/EURUSD").expect(200);
+  await request(app).get(`/api/v1/datasets/${datasetIds[0]}`).expect(200);
+  await request(app).get(`/api/v1/candidate-reports/${"7".repeat(64)}`).expect(200);
+  await request(app).get(`/api/v1/candidate-reports/${"f".repeat(64)}`).expect(404);
 });

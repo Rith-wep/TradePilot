@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tradepilot.local/contracts/candidate-evidence-v1.response.schema.json",
+  "title": "TradePilot candidate evidence response v1",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "request_id", "status", "operation", "report_id", "candidates", "next_offset", "total_count"],
+      "properties": {
+        "contract_version": { "const": "tradepilot-candidate-evidence/v1" },
+        "request_id": { "type": "string" },
+        "status": { "const": "OK" },
+        "operation": { "const": "list_candidates" },
+        "report_id": { "$ref": "#/$defs/sha256" },
+        "candidates": { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/evidence" } },
+        "next_offset": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] },
+        "total_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "request_id", "status", "operation", "evidence"],
+      "properties": {
+        "contract_version": { "const": "tradepilot-candidate-evidence/v1" },
+        "request_id": { "type": "string" },
+        "status": { "const": "OK" },
+        "operation": { "const": "get_evidence" },
+        "evidence": { "$ref": "#/$defs/evidence" }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "request_id", "status", "error"],
+      "properties": {
+        "contract_version": { "const": "tradepilot-candidate-evidence/v1" },
+        "request_id": { "type": "string" },
+        "status": { "const": "ERROR" },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "message", "retryable"],
+          "properties": {
+            "code": { "type": "string" },
+            "message": { "type": "string" },
+            "retryable": { "type": "boolean" }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "utc": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$" },
+    "scalar": { "anyOf": [{ "type": "string" }, { "type": "integer" }, { "type": "boolean" }, { "type": "null" }] },
+    "namedValue": {
+      "type": "object", "additionalProperties": false, "required": ["name", "value"],
+      "properties": { "name": { "type": "string" }, "value": { "$ref": "#/$defs/scalar" } }
+    },
+    "indicatorParameter": {
+      "type": "object", "additionalProperties": false, "required": ["name", "period", "price_basis"],
+      "properties": {
+        "name": { "type": "string" }, "period": { "type": "integer", "minimum": 1 },
+        "price_basis": { "enum": ["bid", "ask", "mid"] }
+      }
+    },
+    "ruleEvidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["rule", "passed", "actual", "expected"],
+      "properties": {
+        "rule": { "type": "string" }, "passed": { "type": "boolean" },
+        "actual": { "$ref": "#/$defs/scalar" }, "expected": { "type": "string" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidateEvidenceId", "reportId", "datasetId", "datasetChecksum", "instrument", "timeframe", "detectionCandleOpenTime", "observableAt", "direction", "setupType", "strategy", "indicatorContext", "ruleEvidence", "structuralInvalidationReference", "provenance", "classification", "liveSignal", "limitations"],
+      "properties": {
+        "candidateEvidenceId": { "type": "string", "pattern": "^[0-9a-f]{64}\\.[0-9]{8}\\.[0-9a-f]{64}$" },
+        "reportId": { "$ref": "#/$defs/sha256" },
+        "datasetId": { "$ref": "#/$defs/sha256" },
+        "datasetChecksum": { "$ref": "#/$defs/sha256" },
+        "instrument": { "type": "string", "pattern": "^[A-Z]{6,12}$" },
+        "timeframe": { "type": "string" },
+        "detectionCandleOpenTime": { "$ref": "#/$defs/utc" },
+        "observableAt": { "$ref": "#/$defs/utc" },
+        "direction": { "enum": ["LONG", "SHORT"] },
+        "setupType": { "type": "string" },
+        "strategy": {
+          "type": "object", "additionalProperties": false,
+          "required": ["name", "version", "configurationFingerprint"],
+          "properties": {
+            "name": { "type": "string" }, "version": { "type": "string" },
+            "configurationFingerprint": { "$ref": "#/$defs/sha256" }
+          }
+        },
+        "indicatorContext": {
+          "type": "object", "additionalProperties": false, "required": ["values", "parameters"],
+          "properties": {
+            "values": { "type": "array", "items": { "$ref": "#/$defs/namedValue" } },
+            "parameters": { "type": "array", "items": { "$ref": "#/$defs/indicatorParameter" } }
+          }
+        },
+        "ruleEvidence": { "type": "array", "items": { "$ref": "#/$defs/ruleEvidence" } },
+        "structuralInvalidationReference": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+        "provenance": {
+          "type": "object", "additionalProperties": false,
+          "required": ["reportSchemaVersion", "researchEngineVersion", "implementationRevision", "sessionCalendarId"],
+          "properties": {
+            "reportSchemaVersion": { "type": "string" }, "researchEngineVersion": { "type": "string" },
+            "implementationRevision": { "type": "string" }, "sessionCalendarId": { "type": "string" }
+          }
+        },
+        "classification": { "const": "HISTORICAL_RESEARCH" },
+        "liveSignal": { "const": false },
+        "limitations": { "type": "array", "minItems": 4, "uniqueItems": true, "items": { "type": "string" } }
+      }
+    }
+  }
+}

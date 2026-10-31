@@ -34,6 +34,7 @@ reproduce it, and see what remains unfinished.
 | 5 | 5 | [Controlled Node/Python Verification Adapter](phases/phase-5-step-5.md) | Complete |
 | 5 | 6 | [Trusted Artifact Catalog Registration](phases/phase-5-step-6.md) | Complete |
 | 5 | 7 | [Read-only Research Catalog APIs](phases/phase-5-step-7.md) | Complete |
+| 5 | 8 | [Read-only Candidate Evidence APIs](phases/phase-5-step-8.md) | Complete |
 
 ## Architecture and development
 
