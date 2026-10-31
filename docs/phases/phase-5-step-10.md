@@ -1,6 +1,6 @@
 # Phase 5, Step 10: Durable Research Job Queue Foundation
 
-Status: implemented, pending review and commit.
+Status: complete. Committed as `1cb34b3`.
 
 ## Scope
 

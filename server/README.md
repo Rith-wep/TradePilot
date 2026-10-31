@@ -239,7 +239,21 @@ npm run build
 npm run worker
 ```
 
-Phase 5 Step 10 intentionally has no Python research processor. The current
-worker entry point exercises bounded lifecycle failure/retry behavior and never
-publishes results or artifacts. If started, it records `PROCESSOR_FAILURE`
-until a later approved step installs a trusted execution adapter.
+The worker invokes only the fixed `tradepilot.execution` Python module with
+operator-approved roots. Python verifies the dataset, runs the existing shared
+workflow with the approved default v1 configuration, atomically publishes and
+verifies the immutable report, and returns its ID. Node independently verifies
+and registers that report before completing the job. No user path, command, or
+strategy parameter reaches the subprocess.
+
+Workers renew leases during execution. Every renewal, retry, and completion is
+fenced by the current lease token. `SUCCEEDED` requires a registered report ID
+through a database foreign key. If a worker crashes after publication, the next
+attempt deterministically reuses and verifies the same report before completing.
+Lease loss is handled as a normal abandoned attempt, so fencing rejection does
+not crash the worker loop.
+
+Research jobs pin `TRADEPILOT_IMPLEMENTATION_REVISION` when submitted. Workers
+fail closed if that revision differs from their trusted runtime revision. Set it
+to the lowercase 40-character build Git SHA in production; when unset and Git
+metadata cannot be read, the explicit fallback is `unknown`.

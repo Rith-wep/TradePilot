@@ -17,6 +17,8 @@ export interface ResearchJob {
   readonly updatedAt: Date;
   readonly startedAt: Date | null;
   readonly completedAt: Date | null;
+  readonly resultReportId: string | null;
+  readonly implementationRevision: string;
 }
 
 export interface ClaimedResearchJob extends ResearchJob {

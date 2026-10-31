@@ -65,6 +65,26 @@ one deterministic evidence record. It accepts report or evidence IDs only,
 never paths, and does not modify canonical reports or identities. The HTTP
 semantics are documented in `../docs/contracts/candidate-evidence-api-v1.md`.
 
+## Execute an approved research job through the machine contract
+
+`tradepilot-execute-research` is the worker-only execution boundary. It accepts
+one `tradepilot-research-execution/v1` JSON request on stdin and writes one JSON
+response to stdout. Dataset and report roots are trusted command configuration;
+requests cannot supply paths, commands, or strategy parameters.
+
+```powershell
+tradepilot-execute-research `
+  --dataset-root data `
+  --report-root reports `
+  --source-root . `
+  < fixtures/contracts/execute-research-request.json
+```
+
+It verifies the immutable dataset, uses the existing shared research workflow
+and approved default v1 strategy configuration, publishes atomically, verifies
+the report, and returns its deterministic ID. See
+`../docs/contracts/research-execution-v1.md`.
+
 ## Provider architecture
 
 `MarketDataProvider` is a small protocol that accepts an instrument, timeframe,

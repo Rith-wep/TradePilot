@@ -1,4 +1,5 @@
 import { isAbsolute, resolve } from "node:path";
+import { spawnSync } from "node:child_process";
 
 export const NODE_ENVIRONMENTS = ["development", "test", "production"] as const;
 export const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
@@ -41,6 +42,20 @@ export interface ResearchJobConfig {
   readonly maxAttempts: number;
   readonly leaseMs: number;
   readonly pollMs: number;
+  readonly implementationRevision: string;
+}
+
+function implementationRevision(value: string | undefined): string {
+  const configured = value?.trim();
+  if (configured !== undefined && configured !== "") {
+    if (configured !== "unknown" && !/^[0-9a-f]{40}$/u.test(configured)) {
+      throw new ConfigurationError("TRADEPILOT_IMPLEMENTATION_REVISION must be a Git SHA or unknown");
+    }
+    return configured;
+  }
+  const result = spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8", shell: false, windowsHide: true });
+  const revision = result.status === 0 ? result.stdout.trim().toLowerCase() : "unknown";
+  return /^[0-9a-f]{40}$/u.test(revision) ? revision : "unknown";
 }
 
 function loopbackHost(value: string | undefined): AppConfig["host"] {
@@ -269,6 +284,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       maxAttempts: boundedInteger("RESEARCH_JOB_MAX_ATTEMPTS", env["RESEARCH_JOB_MAX_ATTEMPTS"], 3, 10),
       leaseMs: positiveInteger("RESEARCH_JOB_LEASE_MS", env["RESEARCH_JOB_LEASE_MS"], 60_000),
       pollMs: positiveInteger("RESEARCH_JOB_POLL_MS", env["RESEARCH_JOB_POLL_MS"], 1_000),
+      implementationRevision: implementationRevision(env["TRADEPILOT_IMPLEMENTATION_REVISION"]),
     }),
   });
 }

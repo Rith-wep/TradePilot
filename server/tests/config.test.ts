@@ -9,6 +9,7 @@ const REQUIRED = {
   OIDC_ISSUER: "https://identity.example.test",
   OIDC_AUDIENCE: "tradepilot-api",
   OIDC_JWKS_URL: "https://identity.example.test/.well-known/jwks.json",
+  TRADEPILOT_IMPLEMENTATION_REVISION: "unknown",
 };
 
 test("configuration applies explicit defaults", () => {
@@ -48,7 +49,7 @@ test("configuration applies explicit defaults", () => {
     },
     researchJobs: {
       maxActivePerOwner: 3, maxQueueDepth: 100, maxAttempts: 3,
-      leaseMs: 60_000, pollMs: 1_000,
+      leaseMs: 60_000, pollMs: 1_000, implementationRevision: "unknown",
     },
   });
 });

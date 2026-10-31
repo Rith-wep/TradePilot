@@ -11,6 +11,8 @@ interface JobRow {
   attempt_count: number; max_attempts: number; lease_token: string | null;
   lease_expires_at: Date | null; error_code: string | null; created_at: Date; updated_at: Date;
   started_at: Date | null; completed_at: Date | null; request_fingerprint: string;
+  result_report_id: string | null;
+  implementation_revision: string;
 }
 
 function job(row: JobRow): ResearchJob {
@@ -22,12 +24,15 @@ function job(row: JobRow): ResearchJob {
     leaseExpiresAt: row.lease_expires_at, errorCode: row.error_code,
     createdAt: row.created_at, updatedAt: row.updated_at,
     startedAt: row.started_at, completedAt: row.completed_at,
+    resultReportId: row.result_report_id,
+    implementationRevision: row.implementation_revision,
   };
 }
 
 const SELECT = `SELECT job_id, owner_subject, dataset_id, instrument_symbol, timeframe,
  strategy_name, strategy_version, state, attempt_count, max_attempts, lease_token,
- lease_expires_at, error_code, created_at, updated_at, started_at, completed_at,
+ lease_expires_at, error_code, created_at, updated_at, started_at, completed_at, result_report_id,
+ implementation_revision,
  request_fingerprint FROM research_jobs`;
 
 export interface QueueLimits {
@@ -35,6 +40,7 @@ export interface QueueLimits {
   readonly maxQueueDepth: number;
   readonly maxAttempts: number;
   readonly leaseMs: number;
+  readonly implementationRevision: string;
 }
 export interface ResearchJobStore {
   submit(owner: string, request: ResearchJobRequest): Promise<{ job: ResearchJob; created: boolean }>;
@@ -82,11 +88,12 @@ export class ResearchJobRepository implements ResearchJobStore {
       const inserted = await client.query<JobRow>(
         `INSERT INTO research_jobs
          (job_id, owner_subject, idempotency_key, request_version, request_fingerprint,
-          dataset_id, instrument_symbol, timeframe, strategy_name, strategy_version, max_attempts)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *, request_fingerprint`,
+          dataset_id, instrument_symbol, timeframe, strategy_name, strategy_version, max_attempts,
+          implementation_revision)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *, request_fingerprint`,
         [jobId, owner, request.idempotencyKey, request.contractVersion, fingerprint,
           request.datasetId, request.instrument, request.timeframe, request.strategy.name,
-          request.strategy.version, this.limits.maxAttempts],
+          request.strategy.version, this.limits.maxAttempts, this.limits.implementationRevision],
       );
       await client.query(
         "INSERT INTO research_job_events (job_id,event_type,from_state,to_state,attempt) VALUES ($1,'SUBMITTED',NULL,'QUEUED',0)", [jobId],
@@ -151,30 +158,51 @@ export class ResearchJobRepository implements ResearchJobStore {
     } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
   }
 
-  public async succeed(jobId: string, leaseToken: string): Promise<void> {
-    await this.transition(jobId, leaseToken, false, null);
+  public async renew(jobId: string, leaseToken: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      const result = await client.query<{ attempt_count: number }>(
+        `UPDATE research_jobs SET lease_expires_at=now()+($3::text || ' milliseconds')::interval,
+         updated_at=now() WHERE job_id=$1 AND state='RUNNING' AND lease_token=$2
+         AND lease_expires_at > now() RETURNING attempt_count`,
+        [jobId, leaseToken, this.limits.leaseMs],
+      );
+      if (result.rowCount !== 1) throw new ResearchJobError("LEASE_LOST", "The job lease is no longer valid.");
+      await this.event(client, jobId, "LEASE_RENEWED", "RUNNING", "RUNNING", result.rows[0]!.attempt_count, null);
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally { client.release(); }
+  }
+
+  public async succeed(jobId: string, leaseToken: string, reportId: string): Promise<void> {
+    if (!/^[0-9a-f]{64}$/u.test(reportId)) throw new ResearchJobError("INVALID_REPORT_ID", "Result report ID is invalid.");
+    await this.transition(jobId, leaseToken, false, null, reportId);
   }
 
   public async fail(jobId: string, leaseToken: string, errorCode: string, retryable: boolean): Promise<void> {
     if (!/^[A-Z][A-Z0-9_]{1,99}$/u.test(errorCode)) throw new ResearchJobError("INVALID_ERROR_CODE", "Worker error code is invalid.");
-    await this.transition(jobId, leaseToken, retryable, errorCode);
+    await this.transition(jobId, leaseToken, retryable, errorCode, null);
   }
 
-  private async transition(jobId: string, leaseToken: string, retryable: boolean, errorCode: string | null): Promise<void> {
+  private async transition(jobId: string, leaseToken: string, retryable: boolean, errorCode: string | null, reportId: string | null): Promise<void> {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
       const current = await client.query<JobRow>(`${SELECT} WHERE job_id=$1 FOR UPDATE`, [jobId]);
       const row = current.rows[0];
-      if (row === undefined || row.state !== "RUNNING" || row.lease_token !== leaseToken) {
+      if (row === undefined || row.state !== "RUNNING" || row.lease_token !== leaseToken
+        || row.lease_expires_at === null || row.lease_expires_at.getTime() <= Date.now()) {
         throw new ResearchJobError("INVALID_JOB_TRANSITION", "The job lease is no longer valid.");
       }
       const requeue = errorCode !== null && retryable && row.attempt_count < row.max_attempts;
       const state: ResearchJobState = errorCode === null ? "SUCCEEDED" : requeue ? "QUEUED" : "FAILED";
       await client.query(
-        `UPDATE research_jobs SET state=$2,lease_token=NULL,lease_expires_at=NULL,error_code=$3,
+        `UPDATE research_jobs SET state=$2,lease_token=NULL,lease_expires_at=NULL,error_code=$3,result_report_id=$4,
          completed_at=CASE WHEN $2 IN ('SUCCEEDED','FAILED') THEN now() ELSE NULL END,updated_at=now()
-         WHERE job_id=$1`, [jobId, state, errorCode],
+         WHERE job_id=$1`, [jobId, state, errorCode, reportId],
       );
       await this.event(client, jobId, errorCode === null ? "SUCCEEDED" : requeue ? "REQUEUED" : "FAILED",
         "RUNNING", state, row.attempt_count, errorCode);

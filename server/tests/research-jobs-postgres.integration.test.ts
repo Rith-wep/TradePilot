@@ -16,7 +16,8 @@ const pool = databaseUrl === undefined ? undefined : new Pool({
   connectionString: databaseUrl, options: `-c search_path=${schema}`,
 });
 const datasetId = "a".repeat(64);
-const limits = { leaseMs: 100, maxActivePerOwner: 3, maxQueueDepth: 100, maxAttempts: 3, pollMs: 1 };
+const reportId = "c".repeat(64);
+const limits = { leaseMs: 100, maxActivePerOwner: 3, maxQueueDepth: 100, maxAttempts: 3, pollMs: 1, implementationRevision: "unknown" };
 
 before(async () => {
   if (admin !== undefined && pool !== undefined) {
@@ -32,6 +33,12 @@ before(async () => {
       provider: "fixture", timeframe: "H1", firstCandleOpen: new Date("2025-01-01T00:00:00Z"),
       lastCandleOpen: new Date("2025-01-02T00:00:00Z"), rowCount: "25",
       schemaVersion: "v1", artifactKey: `data/${datasetId}`, isSynthetic: true,
+      integrityVerifiedAt: new Date("2025-01-03T00:00:00Z"),
+    });
+    await catalog.insertVerifiedCandidateReport({
+      reportId, datasetId, strategyName: "price_range_breakout", strategyVersion: "1.0.0",
+      configurationFingerprint: "d".repeat(64), schemaVersion: "tradepilot-candidate-report-v1",
+      signalCount: 0, artifactKey: `reports/${reportId}`,
       integrityVerifiedAt: new Date("2025-01-03T00:00:00Z"),
     });
   }
@@ -90,6 +97,7 @@ test("SKIP LOCKED claim, lease recovery, bounded retry, and transitions are dura
   const [first, competing] = await Promise.all([repository.claim(), repository.claim()]);
   assert.ok(first !== undefined);
   assert.equal(competing, undefined);
+  await repository.renew(first.jobId, first.leaseToken);
   await pool.query(
     "UPDATE research_jobs SET lease_expires_at=now()-interval '1 second' WHERE job_id=$1",
     [first.jobId],
@@ -99,13 +107,13 @@ test("SKIP LOCKED claim, lease recovery, bounded retry, and transitions are dura
   assert.equal(recovered.jobId, first.jobId);
   assert.equal(recovered.attemptCount, 2);
   await assert.rejects(
-    repository.succeed(first.jobId, first.leaseToken),
+    repository.succeed(first.jobId, first.leaseToken, reportId),
     (error) => error instanceof ResearchJobError && error.code === "INVALID_JOB_TRANSITION",
   );
   await repository.fail(recovered.jobId, recovered.leaseToken, "TRANSIENT_FAILURE", true);
   const retry = await repository.claim();
   assert.ok(retry !== undefined);
-  await repository.succeed(retry.jobId, retry.leaseToken);
+  await repository.succeed(retry.jobId, retry.leaseToken, reportId);
   assert.equal((await repository.get(retry.jobId, "worker-owner", false))?.state, "SUCCEEDED");
   assert.equal(await repository.get(retry.jobId, "different-owner", false), undefined);
   assert.equal((await repository.get(retry.jobId, "admin", true))?.jobId, retry.jobId);
@@ -113,7 +121,7 @@ test("SKIP LOCKED claim, lease recovery, bounded retry, and transitions are dura
     "SELECT event_type FROM research_job_events WHERE job_id=$1 ORDER BY event_id", [retry.jobId],
   );
   assert.deepEqual(events.rows.map((row) => row.event_type), [
-    "SUBMITTED", "CLAIMED", "LEASE_RECOVERED", "CLAIMED", "REQUEUED", "CLAIMED", "SUCCEEDED",
+    "SUBMITTED", "CLAIMED", "LEASE_RENEWED", "LEASE_RECOVERED", "CLAIMED", "REQUEUED", "CLAIMED", "SUCCEEDED",
   ]);
 });
 

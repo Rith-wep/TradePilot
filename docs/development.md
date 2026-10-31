@@ -46,6 +46,7 @@ python -m unittest discover -s tests -p test_identity_golden.py -v
 | `tradepilot-research-report` | Generate or verify an immutable candidate report |
 | `tradepilot-backtest` | Run the deterministic simulator and emit an execution trace |
 | `tradepilot-verify-artifact` | Verify one immutable dataset or candidate report through the machine contract |
+| `tradepilot-execute-research` | Worker-only execution of an approved strategy against a verified dataset |
 
 Use `COMMAND --help` for command-specific arguments. OANDA commands read
 credentials from `OANDA_API_TOKEN` and `OANDA_ACCOUNT_ID`; secrets must not be

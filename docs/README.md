@@ -36,7 +36,8 @@ reproduce it, and see what remains unfinished.
 | 5 | 7 | [Read-only Research Catalog APIs](phases/phase-5-step-7.md) | Complete |
 | 5 | 8 | [Read-only Candidate Evidence APIs](phases/phase-5-step-8.md) | Complete |
 | 5 | 9 | [API Authentication and Production Security Foundation](phases/phase-5-step-9.md) | Complete |
-| 5 | 10 | [Durable Research Job Queue Foundation](phases/phase-5-step-10.md) | Implemented, pending review |
+| 5 | 10 | [Durable Research Job Queue Foundation](phases/phase-5-step-10.md) | Complete |
+| 5 | 11 | [Controlled Python Research Execution](phases/phase-5-step-11.md) | Implemented, pending review |
 
 ## Architecture and development
 

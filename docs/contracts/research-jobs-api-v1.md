@@ -32,5 +32,7 @@ fields, arbitrary paths, commands, and parameters are rejected.
   administrator. A non-owner receives 404 to avoid disclosing existence.
 
 States are `QUEUED`, `RUNNING`, `SUCCEEDED`, `FAILED`, and `CANCELLED`. No Step
-10 endpoint returns or fabricates a research result.
+10 endpoint returns or fabricates a research result. After controlled execution,
+a `SUCCEEDED` job includes `resultReportId`; the database requires that ID to
+already exist in the verified candidate-report catalog.
 

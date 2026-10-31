@@ -15,6 +15,8 @@ const stored: ResearchJob = {
   strategyName: "price_range_breakout", strategyVersion: "v1", state: "QUEUED",
   attemptCount: 0, maxAttempts: 3, leaseExpiresAt: null, errorCode: null,
   createdAt: now, updatedAt: now, startedAt: null, completedAt: null,
+  resultReportId: null,
+  implementationRevision: "unknown",
 };
 const store: ResearchJobStore = {
   async submit(owner) { return { job: { ...stored, ownerSubject: owner }, created: true }; },

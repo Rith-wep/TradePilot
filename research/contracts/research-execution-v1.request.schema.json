@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "request_id", "dataset_id", "instrument", "timeframe", "strategy", "implementation_revision"],
+  "properties": {
+    "contract_version": {"const": "tradepilot-research-execution/v1"},
+    "request_id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]{1,128}$"},
+    "dataset_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "instrument": {"enum": ["EURUSD", "GBPUSD"]},
+    "timeframe": {"const": "H1"},
+    "strategy": {"enum": ["price_range_breakout", "ema_rsi_trend_pullback"]},
+    "implementation_revision": {"type": "string", "pattern": "^(unknown|[0-9a-f]{40})$"}
+  }
+}

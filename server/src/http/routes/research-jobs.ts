@@ -17,6 +17,8 @@ function item(job: ResearchJob) {
     errorCode: job.errorCode, createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(), startedAt: job.startedAt?.toISOString() ?? null,
     completedAt: job.completedAt?.toISOString() ?? null,
+    resultReportId: job.resultReportId,
+    implementationRevision: job.implementationRevision,
   };
 }
 
