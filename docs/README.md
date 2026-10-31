@@ -38,6 +38,7 @@ reproduce it, and see what remains unfinished.
 | 5 | 9 | [API Authentication and Production Security Foundation](phases/phase-5-step-9.md) | Complete |
 | 5 | 10 | [Durable Research Job Queue Foundation](phases/phase-5-step-10.md) | Complete |
 | 5 | 11 | [Controlled Python Research Execution](phases/phase-5-step-11.md) | Implemented, pending review |
+| 5 | 12 | [Docker Compose and Full-System Integration](phases/phase-5-step-12.md) | Implemented, pending review |
 
 ## Architecture and development
 
@@ -45,6 +46,7 @@ reproduce it, and see what remains unfinished.
 - [Project structure](project-structure.md)
 - [Data and research flow](data-flow.md)
 - [Development and CLI reference](development.md)
+- [Docker deployment and operations](docker-deployment.md)
 
 ## Report convention
 

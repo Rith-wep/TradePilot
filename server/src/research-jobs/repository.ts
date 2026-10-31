@@ -57,7 +57,9 @@ export class ResearchJobRepository implements ResearchJobStore {
     try {
       await client.query("BEGIN");
       await client.query("SELECT pg_advisory_xact_lock(hashtext('tradepilot-research-job-submit'))");
-      const existing = await client.query<JobRow>(`${SELECT} WHERE owner_subject = $1 AND idempotency_key = $2 FOR UPDATE`, [owner, request.idempotencyKey]);
+      // The transaction-scoped advisory lock serializes submissions globally,
+      // so the API role does not need UPDATE privilege merely to lock a row.
+      const existing = await client.query<JobRow>(`${SELECT} WHERE owner_subject = $1 AND idempotency_key = $2`, [owner, request.idempotencyKey]);
       const prior = existing.rows[0];
       if (prior !== undefined) {
         if (prior.request_fingerprint !== fingerprint) throw new ResearchJobError("IDEMPOTENCY_CONFLICT", "The idempotency key is already bound to a different request.");

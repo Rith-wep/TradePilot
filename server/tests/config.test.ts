@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import test from "node:test";
 import { ConfigurationError, loadConfig } from "../src/config/env.js";
 
@@ -60,7 +62,8 @@ test("configuration validates environment, log level, and port", () => {
   assert.throws(() => loadConfig({ ...REQUIRED, PORT: "0" }), ConfigurationError);
   assert.throws(() => loadConfig({ ...REQUIRED, PORT: "12.5" }), ConfigurationError);
   assert.throws(() => loadConfig({ ...REQUIRED, PORT: "65536" }), ConfigurationError);
-  assert.throws(() => loadConfig({ ...REQUIRED, HOST: "0.0.0.0" }), ConfigurationError);
+  assert.equal(loadConfig({ ...REQUIRED, HOST: "0.0.0.0" }).host, "0.0.0.0");
+  assert.throws(() => loadConfig({ ...REQUIRED, HOST: "192.0.2.1" }), ConfigurationError);
   assert.throws(() => loadConfig({}), ConfigurationError);
   assert.throws(() => loadConfig({ DATABASE_URL: "https://example.com" }), ConfigurationError);
   assert.throws(
@@ -79,4 +82,18 @@ test("configuration validates environment, log level, and port", () => {
   assert.throws(() => loadConfig({ ...REQUIRED, OIDC_ALLOWED_ALGORITHMS: "HS256" }), ConfigurationError);
   assert.throws(() => loadConfig({ ...REQUIRED, CORS_ALLOWED_ORIGINS: "*" }), ConfigurationError);
   assert.throws(() => loadConfig({ ...REQUIRED, RESEARCH_JOB_MAX_ATTEMPTS: "11" }), ConfigurationError);
+  assert.throws(() => loadConfig({ ...REQUIRED, NODE_ENV: "production" }), ConfigurationError);
+  assert.doesNotThrow(() => loadConfig({
+    ...REQUIRED, NODE_ENV: "production", TRADEPILOT_IMPLEMENTATION_REVISION: "a".repeat(40),
+  }));
+});
+
+test("database URL supports an exclusive Docker secret file", () => {
+  const directory = mkdtempSync(resolve(tmpdir(), "tradepilot-config-"));
+  const secret = resolve(directory, "database-url");
+  writeFileSync(secret, `${DATABASE_URL}\n`);
+  const { DATABASE_URL: _removed, ...withoutDirect } = REQUIRED;
+  assert.equal(loadConfig({ ...withoutDirect, DATABASE_URL_FILE: secret }).databaseUrl, DATABASE_URL);
+  assert.throws(() => loadConfig({ ...REQUIRED, DATABASE_URL_FILE: secret }), ConfigurationError);
+  assert.throws(() => loadConfig({ ...withoutDirect, DATABASE_URL_FILE: resolve(directory, "missing") }), ConfigurationError);
 });

@@ -1,0 +1,77 @@
+services:
+  oidc:
+    build:
+      context: ..
+      dockerfile: server/docker/oidc/Dockerfile
+    image: tradepilot-smoke-oidc:local
+    read_only: true
+    tmpfs: ["/tmp:size=16m,mode=1777"]
+    volumes: ["oidc-tls:/tls"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    networks: ["backend", "identity-egress"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('https').get({hostname:'127.0.0.1',port:8443,path:'/health',rejectUnauthorized:false},r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+
+  api:
+    environment:
+      NODE_EXTRA_CA_CERTS: /tls/ca.crt
+      RATE_LIMIT_MAX: 1000
+    volumes: ["oidc-tls:/tls:ro"]
+    depends_on:
+      oidc:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+
+  worker:
+    build:
+      target: integration-worker
+    environment:
+      RESEARCH_JOB_LEASE_MS: 5000
+      RESEARCH_JOB_POLL_MS: 100
+      TRADEPILOT_PYTHON_EXECUTABLE: /usr/local/bin/python-smoke
+      TRADEPILOT_SMOKE_EXECUTION_DELAY_SECONDS: 10
+
+  smoke:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile.worker
+      target: smoke
+      args:
+        IMPLEMENTATION_REVISION: ${TRADEPILOT_IMPLEMENTATION_REVISION:?set a 40-character Git SHA}
+    image: tradepilot-smoke:${TRADEPILOT_IMPLEMENTATION_REVISION}
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      LOG_LEVEL: error
+      OIDC_ISSUER: https://oidc:8443
+      OIDC_AUDIENCE: tradepilot-api
+      OIDC_JWKS_URL: https://oidc:8443/.well-known/jwks.json
+      OIDC_ALLOWED_ALGORITHMS: RS256
+      OIDC_ROLES_CLAIM: roles
+      NODE_EXTRA_CA_CERTS: /tls/ca.crt
+      TRADEPILOT_IMPLEMENTATION_REVISION: ${TRADEPILOT_IMPLEMENTATION_REVISION}
+      TRADEPILOT_PYTHON_EXECUTABLE: /usr/local/bin/python
+      TRADEPILOT_PYTHON_WORKING_DIRECTORY: /app/research
+      TRADEPILOT_CONTRACT_SCHEMA_DIRECTORY: /app/research/contracts
+      TRADEPILOT_DATA_ROOT: /artifacts/data
+      TRADEPILOT_REPORT_ROOT: /artifacts/reports
+    secrets: ["postgres_worker_password"]
+    volumes:
+      - ${TRADEPILOT_DATA_HOST_PATH}:/artifacts/data:rw
+      - ${TRADEPILOT_REPORT_HOST_PATH}:/artifacts/reports:rw
+      - smoke-state:/smoke-state
+      - oidc-tls:/tls:ro
+    networks: ["backend"]
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  oidc-tls:
+  smoke-state:

@@ -257,3 +257,25 @@ Research jobs pin `TRADEPILOT_IMPLEMENTATION_REVISION` when submitted. Workers
 fail closed if that revision differs from their trusted runtime revision. Set it
 to the lowercase 40-character build Git SHA in production; when unset and Git
 metadata cannot be read, the explicit fallback is `unknown`.
+
+## Docker deployment
+
+The production-oriented topology is documented in
+[`docs/docker-deployment.md`](../docs/docker-deployment.md). It provides separate
+API and worker images, a one-shot migration service, private database/worker
+networking, Docker-secret credentials, least-privilege database roles, read-only
+API artifact mounts, worker-only report writes, health checks, resource bounds,
+and graceful shutdown.
+
+The base `compose.yaml` publishes no ports. `compose.dev.yaml` is an explicit
+loopback-only override. Production requires a full lowercase Git SHA and rejects
+`unknown` revisions.
+
+Run the isolated synthetic full-system smoke test with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\docker-integration.ps1
+```
+
+It verifies authenticated submission, lease recovery after worker interruption,
+immutable report reuse, trusted registration, and historical evidence access.

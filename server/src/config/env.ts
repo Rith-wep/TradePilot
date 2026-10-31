@@ -1,5 +1,6 @@
 import { isAbsolute, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 
 export const NODE_ENVIRONMENTS = ["development", "test", "production"] as const;
 export const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
@@ -9,7 +10,7 @@ export type LogLevel = (typeof LOG_LEVELS)[number];
 
 export interface AppConfig {
   readonly nodeEnv: NodeEnvironment;
-  readonly host: "127.0.0.1" | "::1" | "localhost";
+  readonly host: "127.0.0.1" | "::1" | "localhost" | "0.0.0.0";
   readonly port: number;
   readonly logLevel: LogLevel;
   readonly databaseUrl: string;
@@ -45,25 +46,48 @@ export interface ResearchJobConfig {
   readonly implementationRevision: string;
 }
 
-function implementationRevision(value: string | undefined): string {
+function implementationRevision(value: string | undefined, nodeEnv: NodeEnvironment): string {
   const configured = value?.trim();
   if (configured !== undefined && configured !== "") {
     if (configured !== "unknown" && !/^[0-9a-f]{40}$/u.test(configured)) {
       throw new ConfigurationError("TRADEPILOT_IMPLEMENTATION_REVISION must be a Git SHA or unknown");
     }
+    if (nodeEnv === "production" && configured === "unknown") {
+      throw new ConfigurationError("production requires a 40-character TRADEPILOT_IMPLEMENTATION_REVISION");
+    }
     return configured;
   }
   const result = spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8", shell: false, windowsHide: true });
   const revision = result.status === 0 ? result.stdout.trim().toLowerCase() : "unknown";
-  return /^[0-9a-f]{40}$/u.test(revision) ? revision : "unknown";
+  const resolved = /^[0-9a-f]{40}$/u.test(revision) ? revision : "unknown";
+  if (nodeEnv === "production" && resolved === "unknown") {
+    throw new ConfigurationError("production requires a 40-character TRADEPILOT_IMPLEMENTATION_REVISION");
+  }
+  return resolved;
 }
 
 function loopbackHost(value: string | undefined): AppConfig["host"] {
   const candidate = value ?? "127.0.0.1";
-  if (candidate !== "127.0.0.1" && candidate !== "::1" && candidate !== "localhost") {
-    throw new ConfigurationError("HOST must be a loopback host in the current deployment model");
+  if (candidate !== "127.0.0.1" && candidate !== "::1" && candidate !== "localhost" && candidate !== "0.0.0.0") {
+    throw new ConfigurationError("HOST must be a supported explicit bind address");
   }
   return candidate;
+}
+
+function valueOrFile(name: string, env: NodeJS.ProcessEnv): string | undefined {
+  const direct = env[name];
+  const file = env[`${name}_FILE`];
+  if (direct !== undefined && file !== undefined) {
+    throw new ConfigurationError(`${name} and ${name}_FILE cannot both be set`);
+  }
+  if (file === undefined) return direct;
+  try {
+    const value = readFileSync(file, "utf8").trim();
+    if (value === "") throw new Error("empty secret");
+    return value;
+  } catch {
+    throw new ConfigurationError(`${name}_FILE could not be read`);
+  }
 }
 export interface ArtifactVerifierConfig {
   readonly pythonExecutable: string;
@@ -202,17 +226,18 @@ function corsOrigins(value: string | undefined): readonly string[] {
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
+  const nodeEnv = enumValue("NODE_ENV", env["NODE_ENV"], "development", NODE_ENVIRONMENTS);
   const researchRoot = absolutePath(
     "TRADEPILOT_PYTHON_WORKING_DIRECTORY",
     env["TRADEPILOT_PYTHON_WORKING_DIRECTORY"],
     resolve(process.cwd(), "..", "research"),
   );
   return Object.freeze({
-    nodeEnv: enumValue("NODE_ENV", env["NODE_ENV"], "development", NODE_ENVIRONMENTS),
+    nodeEnv,
     host: loopbackHost(env["HOST"]),
     port: portValue(env["PORT"]),
     logLevel: enumValue("LOG_LEVEL", env["LOG_LEVEL"], "info", LOG_LEVELS),
-    databaseUrl: databaseUrl(env["DATABASE_URL"]),
+    databaseUrl: databaseUrl(valueOrFile("DATABASE_URL", env)),
     databaseConnectTimeoutMs: positiveInteger(
       "DATABASE_CONNECT_TIMEOUT_MS", env["DATABASE_CONNECT_TIMEOUT_MS"], 3_000,
     ),
@@ -284,7 +309,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       maxAttempts: boundedInteger("RESEARCH_JOB_MAX_ATTEMPTS", env["RESEARCH_JOB_MAX_ATTEMPTS"], 3, 10),
       leaseMs: positiveInteger("RESEARCH_JOB_LEASE_MS", env["RESEARCH_JOB_LEASE_MS"], 60_000),
       pollMs: positiveInteger("RESEARCH_JOB_POLL_MS", env["RESEARCH_JOB_POLL_MS"], 1_000),
-      implementationRevision: implementationRevision(env["TRADEPILOT_IMPLEMENTATION_REVISION"]),
+      implementationRevision: implementationRevision(env["TRADEPILOT_IMPLEMENTATION_REVISION"], nodeEnv),
     }),
   });
 }

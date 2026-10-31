@@ -1,0 +1,9 @@
+services:
+  postgres:
+    ports: ["127.0.0.1:54329:5432"]
+  api:
+    ports: ["127.0.0.1:3000:3000"]
+
+networks:
+  backend:
+    internal: false

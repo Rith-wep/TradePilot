@@ -17,7 +17,7 @@ const pool = databaseUrl === undefined ? undefined : new Pool({
 });
 const datasetId = "a".repeat(64);
 const reportId = "c".repeat(64);
-const limits = { leaseMs: 100, maxActivePerOwner: 3, maxQueueDepth: 100, maxAttempts: 3, pollMs: 1, implementationRevision: "unknown" };
+const limits = { leaseMs: 1_000, maxActivePerOwner: 3, maxQueueDepth: 100, maxAttempts: 3, pollMs: 1, implementationRevision: "unknown" };
 
 before(async () => {
   if (admin !== undefined && pool !== undefined) {

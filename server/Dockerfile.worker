@@ -1,0 +1,50 @@
+# syntax=docker/dockerfile:1.7
+FROM node:22-bookworm-slim AS node-build
+WORKDIR /build/server
+COPY server/package.json server/package-lock.json ./
+RUN npm ci
+COPY server/tsconfig.json ./
+COPY server/src ./src
+COPY server/tests ./tests
+RUN npm run build && npm prune --omit=dev
+
+FROM python:3.12-slim-bookworm AS runtime
+ARG IMPLEMENTATION_REVISION
+RUN printf '%s' "$IMPLEMENTATION_REVISION" | grep -Eq '^[0-9a-f]{40}$'
+ENV NODE_ENV=production \
+    TRADEPILOT_IMPLEMENTATION_REVISION=${IMPLEMENTATION_REVISION} \
+    PYTHONUNBUFFERED=1 \
+    PATH=/opt/node/bin:$PATH
+RUN groupadd --system --gid 10001 tradepilot \
+ && useradd --system --uid 10001 --gid tradepilot --home /nonexistent --shell /usr/sbin/nologin tradepilot \
+ && mkdir -p /app/server /app/research /artifacts/data /artifacts/reports \
+ && chown -R tradepilot:tradepilot /app /artifacts
+COPY --from=node-build /usr/local/bin/node /opt/node/bin/node
+COPY --from=node-build /usr/local/lib/node_modules /opt/node/lib/node_modules
+COPY --from=node-build /build/server/node_modules /app/server/node_modules
+COPY --from=node-build /build/server/dist /app/server/dist
+COPY server/package.json server/package-lock.json /app/server/
+COPY server/migrations /app/server/migrations
+COPY --chmod=0555 server/docker/entrypoint-from-secrets.sh /usr/local/bin/tradepilot-entrypoint
+COPY research/pyproject.toml research/README.md /app/research/
+COPY research/src /app/research/src
+COPY research/contracts /app/research/contracts
+RUN python -m pip install --no-cache-dir /app/research
+WORKDIR /app/server
+USER 10001:10001
+ENTRYPOINT ["tradepilot-entrypoint"]
+CMD ["worker", "node", "dist/src/research-jobs/worker.js"]
+
+FROM runtime AS integration-worker
+USER root
+COPY --chmod=0555 server/docker/smoke-python-delay.sh /usr/local/bin/python-smoke
+USER 10001:10001
+
+FROM runtime AS smoke
+USER root
+COPY research/tests /app/research/tests
+COPY server/tests/fixtures /app/server/tests/fixtures
+RUN mkdir -p /smoke-state && chown -R tradepilot:tradepilot /smoke-state
+USER 10001:10001
+ENTRYPOINT ["tradepilot-entrypoint"]
+CMD ["worker", "node", "dist/src/docker/smoke.js", "verify"]

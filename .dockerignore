@@ -1,0 +1,14 @@
+.git
+.agents
+.codex
+**/__pycache__
+**/.pytest_cache
+**/.venv
+**/node_modules
+**/dist
+server/.env
+server/secrets/*.txt
+research/data
+research/reports
+*.csv
+!research/fixtures/**/*.csv

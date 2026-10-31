@@ -304,3 +304,6 @@ We will judge the platform on **research integrity and real user value**, not on
 ---
 
 **Guiding rule:** *Evidence first. Risk second. Explanation third. The trader makes the decision.*
+
+Production-oriented API, worker, PostgreSQL, migrations, and full-system Docker
+integration are documented in [Docker deployment](docs/docker-deployment.md).
