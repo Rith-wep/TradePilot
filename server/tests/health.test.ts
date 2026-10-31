@@ -4,7 +4,7 @@ import request from "supertest";
 import { createApp } from "../src/app.js";
 import { API_VERSION } from "../src/http/contracts/envelope.js";
 import { silentLogger } from "../src/logging/logger.js";
-import { TEST_AUTH_CONFIG, TEST_SECURITY_CONFIG, viewerTokenVerifier } from "./security-fixtures.js";
+import { TEST_AUTH_CONFIG, TEST_RESEARCH_JOBS_CONFIG, TEST_SECURITY_CONFIG, viewerTokenVerifier } from "./security-fixtures.js";
 
 const config = {
   nodeEnv: "test" as const,
@@ -29,6 +29,7 @@ const config = {
   },
   auth: TEST_AUTH_CONFIG,
   security: TEST_SECURITY_CONFIG,
+  researchJobs: TEST_RESEARCH_JOBS_CONFIG,
 };
 
 const emptyCatalog = {

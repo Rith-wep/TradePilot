@@ -10,7 +10,7 @@ import { CatalogRepository } from "../src/database/catalog-repository.js";
 import { PostgresCatalogReader } from "../src/database/catalog-read-repository.js";
 import { migrate } from "../src/database/migrator.js";
 import { silentLogger } from "../src/logging/logger.js";
-import { TEST_AUTH_CONFIG, TEST_AUTHORIZATION, TEST_SECURITY_CONFIG, viewerTokenVerifier } from "./security-fixtures.js";
+import { TEST_AUTH_CONFIG, TEST_AUTHORIZATION, TEST_RESEARCH_JOBS_CONFIG, TEST_SECURITY_CONFIG, viewerTokenVerifier } from "./security-fixtures.js";
 
 const databaseUrl = process.env["TEST_DATABASE_URL"];
 const schema = `catalog_read_${randomUUID().replaceAll("-", "")}`;
@@ -43,6 +43,7 @@ const config: AppConfig = {
   },
   auth: TEST_AUTH_CONFIG,
   security: TEST_SECURITY_CONFIG,
+  researchJobs: TEST_RESEARCH_JOBS_CONFIG,
 };
 
 before(async () => {

@@ -1,6 +1,6 @@
 # Phase 5, Step 9: API Authentication and Production Security Foundation
 
-Status: implemented, pending review and commit.
+Status: complete. Committed as `90d4961`.
 
 ## Scope
 

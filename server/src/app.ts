@@ -17,6 +17,8 @@ import { catalogRouter } from "./http/routes/catalog.js";
 import { evidenceRouter } from "./http/routes/evidence.js";
 import { ApiError } from "./http/errors/api-error.js";
 import type { Logger } from "./logging/logger.js";
+import type { ResearchJobStore } from "./research-jobs/repository.js";
+import { researchJobsRouter } from "./http/routes/research-jobs.js";
 
 export interface AppDependencies {
   readonly config: AppConfig;
@@ -25,9 +27,10 @@ export interface AppDependencies {
   readonly catalog: CatalogReadStore;
   readonly evidence: Pick<CandidateEvidenceService, "list" | "get">;
   readonly tokenVerifier: AccessTokenVerifier;
+  readonly researchJobs?: ResearchJobStore;
 }
 
-export function createApp({ config, logger, database, catalog, evidence, tokenVerifier }: AppDependencies): Express {
+export function createApp({ config, logger, database, catalog, evidence, tokenVerifier, researchJobs }: AppDependencies): Express {
   const app = express();
   app.disable("x-powered-by");
   app.use(requestIdMiddleware);
@@ -55,6 +58,7 @@ export function createApp({ config, logger, database, catalog, evidence, tokenVe
   }), authenticate(tokenVerifier), authorize("viewer"));
   app.use("/api/v1", catalogRouter(catalog));
   app.use("/api/v1", evidenceRouter(catalog, evidence));
+  if (researchJobs !== undefined) app.use("/api/v1", researchJobsRouter(researchJobs));
   app.use(notFoundHandler);
   app.use(errorHandler(logger));
   return app;

@@ -46,6 +46,10 @@ test("configuration applies explicit defaults", () => {
       corsAllowedOrigins: [], rateLimitWindowMs: 60_000,
       rateLimitMax: 120, requestBodyMaxBytes: 32_768,
     },
+    researchJobs: {
+      maxActivePerOwner: 3, maxQueueDepth: 100, maxAttempts: 3,
+      leaseMs: 60_000, pollMs: 1_000,
+    },
   });
 });
 
@@ -73,4 +77,5 @@ test("configuration validates environment, log level, and port", () => {
   assert.throws(() => loadConfig({ ...REQUIRED, OIDC_ISSUER: "http://issuer.test" }), ConfigurationError);
   assert.throws(() => loadConfig({ ...REQUIRED, OIDC_ALLOWED_ALGORITHMS: "HS256" }), ConfigurationError);
   assert.throws(() => loadConfig({ ...REQUIRED, CORS_ALLOWED_ORIGINS: "*" }), ConfigurationError);
+  assert.throws(() => loadConfig({ ...REQUIRED, RESEARCH_JOB_MAX_ATTEMPTS: "11" }), ConfigurationError);
 });

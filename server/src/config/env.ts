@@ -17,6 +17,7 @@ export interface AppConfig {
   readonly artifactVerifier: ArtifactVerifierConfig;
   readonly auth: AuthConfig;
   readonly security: SecurityConfig;
+  readonly researchJobs: ResearchJobConfig;
 }
 export type AuthRole = "viewer" | "researcher" | "admin";
 export type JwtAlgorithm = "RS256" | "PS256" | "ES256";
@@ -33,6 +34,13 @@ export interface SecurityConfig {
   readonly rateLimitWindowMs: number;
   readonly rateLimitMax: number;
   readonly requestBodyMaxBytes: number;
+}
+export interface ResearchJobConfig {
+  readonly maxActivePerOwner: number;
+  readonly maxQueueDepth: number;
+  readonly maxAttempts: number;
+  readonly leaseMs: number;
+  readonly pollMs: number;
 }
 
 function loopbackHost(value: string | undefined): AppConfig["host"] {
@@ -97,6 +105,12 @@ function positiveInteger(name: string, value: string | undefined, fallback: numb
   if (!Number.isSafeInteger(parsed) || parsed < 1) {
     throw new ConfigurationError(`${name} must be a positive integer`);
   }
+  return parsed;
+}
+
+function boundedInteger(name: string, value: string | undefined, fallback: number, maximum: number): number {
+  const parsed = positiveInteger(name, value, fallback);
+  if (parsed > maximum) throw new ConfigurationError(`${name} must be at most ${maximum}`);
   return parsed;
 }
 
@@ -248,6 +262,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       rateLimitWindowMs: positiveInteger("RATE_LIMIT_WINDOW_MS", env["RATE_LIMIT_WINDOW_MS"], 60_000),
       rateLimitMax: positiveInteger("RATE_LIMIT_MAX", env["RATE_LIMIT_MAX"], 120),
       requestBodyMaxBytes: positiveInteger("REQUEST_BODY_MAX_BYTES", env["REQUEST_BODY_MAX_BYTES"], 32_768),
+    }),
+    researchJobs: Object.freeze({
+      maxActivePerOwner: positiveInteger("RESEARCH_JOB_MAX_ACTIVE_PER_OWNER", env["RESEARCH_JOB_MAX_ACTIVE_PER_OWNER"], 3),
+      maxQueueDepth: positiveInteger("RESEARCH_JOB_MAX_QUEUE_DEPTH", env["RESEARCH_JOB_MAX_QUEUE_DEPTH"], 100),
+      maxAttempts: boundedInteger("RESEARCH_JOB_MAX_ATTEMPTS", env["RESEARCH_JOB_MAX_ATTEMPTS"], 3, 10),
+      leaseMs: positiveInteger("RESEARCH_JOB_LEASE_MS", env["RESEARCH_JOB_LEASE_MS"], 60_000),
+      pollMs: positiveInteger("RESEARCH_JOB_POLL_MS", env["RESEARCH_JOB_POLL_MS"], 1_000),
     }),
   });
 }

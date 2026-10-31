@@ -11,7 +11,7 @@ import type {
   InstrumentCatalogView,
 } from "../src/database/catalog-read-repository.js";
 import { silentLogger } from "../src/logging/logger.js";
-import { TEST_AUTH_CONFIG, TEST_AUTHORIZATION, TEST_SECURITY_CONFIG, viewerTokenVerifier } from "./security-fixtures.js";
+import { TEST_AUTH_CONFIG, TEST_AUTHORIZATION, TEST_RESEARCH_JOBS_CONFIG, TEST_SECURITY_CONFIG, viewerTokenVerifier } from "./security-fixtures.js";
 
 const verifiedAt = new Date("2026-01-03T00:00:00.000Z");
 const ids = ["1".repeat(64), "2".repeat(64), "3".repeat(64)];
@@ -91,6 +91,7 @@ function config(nodeEnv: AppConfig["nodeEnv"] = "test"): AppConfig {
     },
     auth: TEST_AUTH_CONFIG,
     security: TEST_SECURITY_CONFIG,
+    researchJobs: TEST_RESEARCH_JOBS_CONFIG,
   };
 }
 

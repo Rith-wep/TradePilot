@@ -6,7 +6,7 @@ import { createApp } from "../src/app.js";
 import { OidcTokenVerifier } from "../src/auth/oidc-verifier.js";
 import type { AppConfig, AuthRole } from "../src/config/env.js";
 import { silentLogger } from "../src/logging/logger.js";
-import { TEST_AUTH_CONFIG, TEST_SECURITY_CONFIG } from "./security-fixtures.js";
+import { TEST_AUTH_CONFIG, TEST_RESEARCH_JOBS_CONFIG, TEST_SECURITY_CONFIG } from "./security-fixtures.js";
 
 let signingKey: CryptoKey;
 let wrongKey: CryptoKey;
@@ -41,6 +41,7 @@ function config(overrides: Partial<AppConfig["security"]> = {}): AppConfig {
       maxOutputBytes: 1_048_576, maxErrorBytes: 16_384, maxConcurrency: 2, maxPendingRequests: 16,
     },
     auth: TEST_AUTH_CONFIG, security: { ...TEST_SECURITY_CONFIG, ...overrides },
+    researchJobs: TEST_RESEARCH_JOBS_CONFIG,
   };
 }
 

@@ -45,6 +45,9 @@ Endpoints:
 - `GET /api/v1/candidate-reports/:reportId`: one candidate-report record.
 - `GET /api/v1/candidate-reports/:reportId/candidates`: verified candidate evidence.
 - `GET /api/v1/evidence/:candidateEvidenceId`: one verified evidence projection.
+- `POST /api/v1/research-jobs`: enqueue an allowlisted request (`researcher` or `admin`; HTTP 202).
+- `GET /api/v1/research-jobs/`: list caller-owned jobs; administrators may inspect all jobs.
+- `GET /api/v1/research-jobs/:jobId`: owner-or-admin job detail.
 
 All endpoints use the `tradepilot-api/v1` response envelope and return an
 `x-request-id` header. Requests may provide a safe `x-request-id`; otherwise the
@@ -108,6 +111,7 @@ src/
 |-- database/            # pg pool, migration runner and catalog access
 |-- verification/        # internal, schema-checked Python contract adapter
 |-- catalog/             # verified, transactional artifact registration
+|-- research-jobs/       # durable queue repository and worker lifecycle
 |-- logging/             # structured JSON logger
 |-- app.ts               # dependency-injected Express composition
 `-- server.ts            # process lifecycle and graceful shutdown
@@ -203,8 +207,39 @@ the Python verifier against catalog entries, compare immutable metadata, and
 raise an operator-visible discrepancy without updating identities or silently
 deleting history.
 
-The production database role should have only `SELECT` and `INSERT` on catalog
-tables plus sequence/migration permissions where operationally required. It
-does not need `UPDATE`, `DELETE`, schema ownership, or access to artifact-root
-credentials. Filesystem permissions should make artifact roots read-only to the
-Node service and Python verifier after immutable publication.
+The production API database role needs `SELECT` and the narrowly required
+`INSERT` access on catalog and queue tables. The worker additionally requires
+`UPDATE` on `research_jobs` and `INSERT` on `research_job_events`. Neither role
+needs `DELETE`, schema ownership, or artifact-root credentials; migration
+permissions should belong to a separate operator role. Filesystem permissions
+should make artifact roots read-only to Node and Python after publication.
+
+## Durable research-job queue
+
+Migration `002_research_jobs` adds `research_jobs` and append-only lifecycle
+records in `research_job_events`. Requests accept only contract version
+`tradepilot-research-job-request/v1`, a verified catalog dataset ID, EURUSD or
+GBPUSD, H1, and an existing v1 breakout or pullback identifier. No command,
+path, executable, arbitrary parameter, or result field is accepted.
+
+Submission is transactional. A per-owner idempotency key is bound to the
+request fingerprint. Identical reuse returns the existing job; conflicting
+reuse fails. Queue depth and per-owner active counts are checked under a
+PostgreSQL advisory transaction lock.
+
+Workers claim rows with `FOR UPDATE SKIP LOCKED`. Claims have random lease
+tokens, expirations, bounded attempts, and token-guarded completion. Another
+worker may recover an expired lease; stale workers cannot finalize that job.
+Only sanitized error codes are persisted.
+
+```powershell
+cd server
+npm run db:migrate
+npm run build
+npm run worker
+```
+
+Phase 5 Step 10 intentionally has no Python research processor. The current
+worker entry point exercises bounded lifecycle failure/retry behavior and never
+publishes results or artifacts. If started, it records `PROCESSOR_FAILURE`
+until a later approved step installs a trusted execution adapter.

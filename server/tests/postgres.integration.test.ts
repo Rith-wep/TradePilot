@@ -33,7 +33,7 @@ after(async () => {
 
 test("migrations, constraints, and parameterized catalog access", { skip: databaseUrl === undefined }, async () => {
   assert.ok(pool !== undefined);
-  assert.deepEqual(await migrate(pool, migrations, "up"), ["001"]);
+  assert.deepEqual(await migrate(pool, migrations, "up"), ["001", "002"]);
   assert.deepEqual(await migrate(pool, migrations, "up"), []);
 
   const repository = new CatalogRepository(pool);
@@ -99,6 +99,7 @@ test("migrations, constraints, and parameterized catalog access", { skip: databa
     /duplicate key value/,
   );
 
+  assert.deepEqual(await migrate(pool, migrations, "down"), ["002"]);
   assert.deepEqual(await migrate(pool, migrations, "down"), ["001"]);
   const tables = await pool.query<{ name: string | null }>("SELECT to_regclass('datasets') AS name");
   assert.equal(tables.rows[0]?.name, null);

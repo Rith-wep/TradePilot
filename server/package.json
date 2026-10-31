@@ -12,6 +12,7 @@
     "db:migrate": "npm run build && node --env-file-if-exists=.env dist/src/database/migrate-cli.js up",
     "db:rollback": "npm run build && node --env-file-if-exists=.env dist/src/database/migrate-cli.js down",
     "start": "node --env-file-if-exists=.env dist/src/server.js",
+    "worker": "node --env-file-if-exists=.env dist/src/research-jobs/worker.js",
     "test": "npm run build && node --test \"dist/tests/*.test.js\"",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

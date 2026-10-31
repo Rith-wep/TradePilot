@@ -10,7 +10,7 @@ import type { AppConfig, ArtifactVerifierConfig } from "../src/config/env.js";
 import type { CandidateReportCatalogView, CatalogReadStore } from "../src/database/catalog-read-repository.js";
 import { CandidateEvidenceService } from "../src/evidence/evidence-service.js";
 import { silentLogger } from "../src/logging/logger.js";
-import { TEST_AUTH_CONFIG, TEST_AUTHORIZATION, TEST_SECURITY_CONFIG, viewerTokenVerifier } from "./security-fixtures.js";
+import { TEST_AUTH_CONFIG, TEST_AUTHORIZATION, TEST_RESEARCH_JOBS_CONFIG, TEST_SECURITY_CONFIG, viewerTokenVerifier } from "./security-fixtures.js";
 
 const SERVER_ROOT = process.cwd();
 const RESEARCH_ROOT = resolve(SERVER_ROOT, "..", "research");
@@ -85,6 +85,7 @@ function config(verifier: ArtifactVerifierConfig): AppConfig {
     databaseUrl: "postgresql://unused", databaseConnectTimeoutMs: 100,
     databaseReadyTimeoutMs: 100, artifactVerifier: verifier,
     auth: TEST_AUTH_CONFIG, security: TEST_SECURITY_CONFIG,
+    researchJobs: TEST_RESEARCH_JOBS_CONFIG,
   };
 }
 
