@@ -36,10 +36,25 @@ Endpoints:
 - `GET /health/live`: process liveness.
 - `GET /health/ready`: validated configuration and bounded PostgreSQL
   connectivity. Database failure returns HTTP 503 with `status: DOWN`.
+- `GET /api/v1/instruments`: verified instrument metadata.
+- `GET /api/v1/datasets`: immutable historical dataset metadata.
+- `GET /api/v1/candidate-reports`: historical research-candidate metadata.
 
-Both endpoints use the `tradepilot-api/v1` response envelope and return an
+All endpoints use the `tradepilot-api/v1` response envelope and return an
 `x-request-id` header. Requests may provide a safe `x-request-id`; otherwise the
 server creates a UUID.
+
+The three catalog endpoints are read-only and support optional `limit` and
+`cursor` parameters. Page sizes default to 25 and are capped at 100. Trailing
+slash variants are equivalent. Decimal values and PostgreSQL `bigint` values
+remain strings; timestamps are UTC ISO 8601 values. See
+`docs/contracts/research-catalog-api-v1.md` for response fields.
+
+Until authentication is implemented, `HOST` must be `127.0.0.1`, `::1`, or
+`localhost`. Catalog routes return `CATALOG_API_DISABLED` in production even on
+loopback. They expose no storage keys, filesystem paths, raw Parquet, Python
+diagnostics, or verification internals. Candidate reports are explicitly
+historical research evidence and never live trading signals.
 
 ## Structure
 

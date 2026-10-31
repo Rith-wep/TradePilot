@@ -7,6 +7,7 @@ import { silentLogger } from "../src/logging/logger.js";
 
 const config = {
   nodeEnv: "test" as const,
+  host: "127.0.0.1" as const,
   port: 3000,
   logLevel: "error" as const,
   databaseUrl: "postgresql://unused",
@@ -27,8 +28,16 @@ const config = {
   },
 };
 
+const emptyCatalog = {
+  async listInstruments() { return []; },
+  async listDatasets() { return []; },
+  async listCandidateReports() { return []; },
+};
+
 function appWithDatabase(result: boolean) {
-  return createApp({ config, logger: silentLogger, database: { async check() { return result; } } });
+  return createApp({
+    config, logger: silentLogger, database: { async check() { return result; } }, catalog: emptyCatalog,
+  });
 }
 
 const app = appWithDatabase(true);
@@ -75,6 +84,7 @@ test("liveness does not query the database", async () => {
     config,
     logger: silentLogger,
     database: { async check() { checks += 1; return false; } },
+    catalog: emptyCatalog,
   });
   await request(isolated).get("/health/live").expect(200);
   assert.equal(checks, 0);

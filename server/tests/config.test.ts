@@ -9,6 +9,7 @@ test("configuration applies explicit defaults", () => {
   const researchRoot = resolve(process.cwd(), "..", "research");
   assert.deepEqual(loadConfig({ DATABASE_URL }), {
     nodeEnv: "development",
+    host: "127.0.0.1",
     port: 3000,
     logLevel: "info",
     databaseUrl: DATABASE_URL,
@@ -36,6 +37,7 @@ test("configuration validates environment, log level, and port", () => {
   assert.throws(() => loadConfig({ DATABASE_URL, PORT: "0" }), ConfigurationError);
   assert.throws(() => loadConfig({ DATABASE_URL, PORT: "12.5" }), ConfigurationError);
   assert.throws(() => loadConfig({ DATABASE_URL, PORT: "65536" }), ConfigurationError);
+  assert.throws(() => loadConfig({ DATABASE_URL, HOST: "0.0.0.0" }), ConfigurationError);
   assert.throws(() => loadConfig({}), ConfigurationError);
   assert.throws(() => loadConfig({ DATABASE_URL: "https://example.com" }), ConfigurationError);
   assert.throws(

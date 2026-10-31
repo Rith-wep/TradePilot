@@ -8,12 +8,21 @@ export type LogLevel = (typeof LOG_LEVELS)[number];
 
 export interface AppConfig {
   readonly nodeEnv: NodeEnvironment;
+  readonly host: "127.0.0.1" | "::1" | "localhost";
   readonly port: number;
   readonly logLevel: LogLevel;
   readonly databaseUrl: string;
   readonly databaseConnectTimeoutMs: number;
   readonly databaseReadyTimeoutMs: number;
   readonly artifactVerifier: ArtifactVerifierConfig;
+}
+
+function loopbackHost(value: string | undefined): AppConfig["host"] {
+  const candidate = value ?? "127.0.0.1";
+  if (candidate !== "127.0.0.1" && candidate !== "::1" && candidate !== "localhost") {
+    throw new ConfigurationError("HOST must be a loopback host until authentication is implemented");
+  }
+  return candidate;
 }
 export interface ArtifactVerifierConfig {
   readonly pythonExecutable: string;
@@ -113,6 +122,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   );
   return Object.freeze({
     nodeEnv: enumValue("NODE_ENV", env["NODE_ENV"], "development", NODE_ENVIRONMENTS),
+    host: loopbackHost(env["HOST"]),
     port: portValue(env["PORT"]),
     logLevel: enumValue("LOG_LEVEL", env["LOG_LEVEL"], "info", LOG_LEVELS),
     databaseUrl: databaseUrl(env["DATABASE_URL"]),
