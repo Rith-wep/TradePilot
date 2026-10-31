@@ -1,5 +1,4 @@
 import { Router, type Request } from "express";
-import type { AppConfig } from "../../config/env.js";
 import type {
   CandidateReportCatalogView,
   CatalogReadStore,
@@ -58,15 +57,6 @@ async function detail<T>(load: () => Promise<T | undefined>, label: string): Pro
   return item;
 }
 
-function requireLocalCatalog(config: AppConfig): void {
-  if (config.nodeEnv === "production") {
-    throw new ApiError(
-      503, "CATALOG_API_DISABLED",
-      "Catalog APIs are disabled until authorization is implemented.", false,
-    );
-  }
-}
-
 async function page<T>(
   req: Request,
   kind: CursorKind,
@@ -90,11 +80,8 @@ async function page<T>(
   };
 }
 
-export function catalogRouter(config: AppConfig, catalog: CatalogReadStore): Router {
+export function catalogRouter(catalog: CatalogReadStore): Router {
   const router = Router();
-  router.use((_req, _res, next) => {
-    try { requireLocalCatalog(config); next(); } catch (error) { next(error); }
-  });
 
   router.get("/instruments", async (req, res) => {
     const result = await page(req, "instruments",

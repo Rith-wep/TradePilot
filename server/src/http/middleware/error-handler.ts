@@ -11,16 +11,25 @@ function isMalformedJson(error: unknown): boolean {
   return value.status === 400 && value.type === "entity.parse.failed";
 }
 
+function isBodyTooLarge(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const value = error as { status?: unknown; type?: unknown };
+  return value.status === 413 && value.type === "entity.too.large";
+}
+
 export function errorHandler(logger: Logger): ErrorRequestHandler {
   return (error: unknown, req, res, _next): void => {
     const known = error instanceof ApiError;
     const malformedJson = isMalformedJson(error);
-    const status = known ? error.status : malformedJson ? 400 : 500;
-    const code = known ? error.code : malformedJson ? "VALIDATION_ERROR" : "INTERNAL_ERROR";
+    const bodyTooLarge = isBodyTooLarge(error);
+    const status = known ? error.status : malformedJson ? 400 : bodyTooLarge ? 413 : 500;
+    const code = known ? error.code : malformedJson ? "VALIDATION_ERROR" : bodyTooLarge ? "REQUEST_TOO_LARGE" : "INTERNAL_ERROR";
     const message = known
       ? error.message
       : malformedJson
         ? "The request body must contain valid JSON."
+        : bodyTooLarge
+          ? "The request body exceeds the configured size limit."
         : "An unexpected error occurred.";
     const retryable = known ? error.retryable : false;
     const details = known ? error.details : undefined;

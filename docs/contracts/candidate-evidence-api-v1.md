@@ -38,4 +38,5 @@ committed JSON schemas.
 - Node never returns or reads canonical `report.json` directly.
 - Output, input, time, concurrency, pending work, and candidate count are bounded.
 - Missing, corrupted, mismatched, malformed, or oversized evidence fails closed.
-- Routes are loopback-only and disabled in production until authorization exists.
+- Routes require a verified OIDC bearer token with at least the `viewer` role
+  and remain loopback-bound in the current deployment model.

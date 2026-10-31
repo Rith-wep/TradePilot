@@ -35,6 +35,7 @@ reproduce it, and see what remains unfinished.
 | 5 | 6 | [Trusted Artifact Catalog Registration](phases/phase-5-step-6.md) | Complete |
 | 5 | 7 | [Read-only Research Catalog APIs](phases/phase-5-step-7.md) | Complete |
 | 5 | 8 | [Read-only Candidate Evidence APIs](phases/phase-5-step-8.md) | Complete |
+| 5 | 9 | [API Authentication and Production Security Foundation](phases/phase-5-step-9.md) | Implemented, pending review |
 
 ## Architecture and development
 

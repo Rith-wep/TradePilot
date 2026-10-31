@@ -10,6 +10,7 @@ import { CatalogRepository } from "../src/database/catalog-repository.js";
 import { PostgresCatalogReader } from "../src/database/catalog-read-repository.js";
 import { migrate } from "../src/database/migrator.js";
 import { silentLogger } from "../src/logging/logger.js";
+import { TEST_AUTH_CONFIG, TEST_AUTHORIZATION, TEST_SECURITY_CONFIG, viewerTokenVerifier } from "./security-fixtures.js";
 
 const databaseUrl = process.env["TEST_DATABASE_URL"];
 const schema = `catalog_read_${randomUUID().replaceAll("-", "")}`;
@@ -40,6 +41,8 @@ const config: AppConfig = {
     maxConcurrency: 2,
     maxPendingRequests: 16,
   },
+  auth: TEST_AUTH_CONFIG,
+  security: TEST_SECURITY_CONFIG,
 };
 
 before(async () => {
@@ -71,8 +74,10 @@ test("PostgreSQL catalog endpoints return only ordered verified public metadata"
       async list() { throw new Error("unused"); },
       async get() { throw new Error("unused"); },
     },
+    tokenVerifier: viewerTokenVerifier,
   });
-  const empty = await request(app).get("/api/v1/datasets").expect(200);
+  const api = (path: string) => request(app).get(path).set("authorization", TEST_AUTHORIZATION);
+  const empty = await api("/api/v1/datasets").expect(200);
   assert.deepEqual(empty.body.data.items, []);
 
   const repository = new CatalogRepository(pool);
@@ -110,7 +115,7 @@ test("PostgreSQL catalog endpoints return only ordered verified public metadata"
     });
   }
 
-  const first = await request(app).get("/api/v1/datasets?limit=1").expect(200);
+  const first = await api("/api/v1/datasets?limit=1").expect(200);
   assert.equal(first.body.data.items[0].datasetId, datasetIds[0]);
   assert.equal(first.body.data.items[0].rowCount, "25");
   assert.equal(first.body.data.items[0].verifiedAt, verifiedAt.toISOString());
@@ -118,22 +123,21 @@ test("PostgreSQL catalog endpoints return only ordered verified public metadata"
   assert.equal(first.text.includes("artifact_key"), false);
   assert.equal(first.text.includes("private/"), false);
 
-  const second = await request(app)
-    .get(`/api/v1/datasets?limit=1&cursor=${encodeURIComponent(first.body.data.nextCursor)}`)
+  const second = await api(`/api/v1/datasets?limit=1&cursor=${encodeURIComponent(first.body.data.nextCursor)}`)
     .expect(200);
   assert.equal(second.body.data.items[0].datasetId, datasetIds[1]);
   assert.equal(second.body.data.nextCursor, null);
 
-  const instruments = await request(app).get("/api/v1/instruments/").expect(200);
+  const instruments = await api("/api/v1/instruments/").expect(200);
   assert.equal(instruments.body.data.items[0].pipSize, "0.0001");
   assert.equal(instruments.body.data.items[0].verifiedAt, verifiedAt.toISOString());
 
-  const reports = await request(app).get("/api/v1/candidate-reports/").expect(200);
+  const reports = await api("/api/v1/candidate-reports/").expect(200);
   assert.equal(reports.body.data.items.length, 2);
   assert.equal(reports.body.data.items[0].liveSignal, false);
   assert.equal(reports.body.data.items[0].schemaVersion, "tradepilot-candidate-report-v1");
-  await request(app).get("/api/v1/instruments/EURUSD").expect(200);
-  await request(app).get(`/api/v1/datasets/${datasetIds[0]}`).expect(200);
-  await request(app).get(`/api/v1/candidate-reports/${"7".repeat(64)}`).expect(200);
-  await request(app).get(`/api/v1/candidate-reports/${"f".repeat(64)}`).expect(404);
+  await api("/api/v1/instruments/EURUSD").expect(200);
+  await api(`/api/v1/datasets/${datasetIds[0]}`).expect(200);
+  await api(`/api/v1/candidate-reports/${"7".repeat(64)}`).expect(200);
+  await api(`/api/v1/candidate-reports/${"f".repeat(64)}`).expect(404);
 });

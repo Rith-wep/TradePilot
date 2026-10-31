@@ -4,6 +4,7 @@ import request from "supertest";
 import { createApp } from "../src/app.js";
 import { API_VERSION } from "../src/http/contracts/envelope.js";
 import { silentLogger } from "../src/logging/logger.js";
+import { TEST_AUTH_CONFIG, TEST_SECURITY_CONFIG, viewerTokenVerifier } from "./security-fixtures.js";
 
 const config = {
   nodeEnv: "test" as const,
@@ -26,6 +27,8 @@ const config = {
     maxConcurrency: 2,
     maxPendingRequests: 16,
   },
+  auth: TEST_AUTH_CONFIG,
+  security: TEST_SECURITY_CONFIG,
 };
 
 const emptyCatalog = {
@@ -44,7 +47,7 @@ const emptyEvidence = {
 function appWithDatabase(result: boolean) {
   return createApp({
     config, logger: silentLogger, database: { async check() { return result; } },
-    catalog: emptyCatalog, evidence: emptyEvidence,
+    catalog: emptyCatalog, evidence: emptyEvidence, tokenVerifier: viewerTokenVerifier,
   });
 }
 
@@ -94,6 +97,7 @@ test("liveness does not query the database", async () => {
     database: { async check() { checks += 1; return false; } },
     catalog: emptyCatalog,
     evidence: emptyEvidence,
+    tokenVerifier: viewerTokenVerifier,
   });
   await request(isolated).get("/health/live").expect(200);
   assert.equal(checks, 0);

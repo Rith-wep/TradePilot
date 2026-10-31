@@ -1,5 +1,4 @@
 import { Router } from "express";
-import type { AppConfig } from "../../config/env.js";
 import type { CatalogReadStore } from "../../database/catalog-read-repository.js";
 import type { CandidateEvidenceService } from "../../evidence/evidence-service.js";
 import { ArtifactVerificationError } from "../../verification/errors.js";
@@ -9,12 +8,6 @@ import { encodeCursor, parsePageQuery } from "../pagination/cursor.js";
 
 const SHA256 = /^[0-9a-f]{64}$/u;
 const EVIDENCE_ID = /^([0-9a-f]{64})\.[0-9]{8}\.[0-9a-f]{64}$/u;
-
-function localOnly(config: AppConfig): void {
-  if (config.nodeEnv === "production") {
-    throw new ApiError(503, "CATALOG_API_DISABLED", "Evidence APIs are disabled until authorization is implemented.");
-  }
-}
 
 function unavailable(error: unknown): never {
   if (error instanceof ArtifactVerificationError) {
@@ -27,14 +20,10 @@ function unavailable(error: unknown): never {
 }
 
 export function evidenceRouter(
-  config: AppConfig,
   catalog: CatalogReadStore,
   evidence: Pick<CandidateEvidenceService, "list" | "get">,
 ): Router {
   const router = Router();
-  router.use((_req, _res, next) => {
-    try { localOnly(config); next(); } catch (error) { next(error); }
-  });
 
   router.get("/candidate-reports/:reportId/candidates", async (req, res) => {
     const reportId = req.params["reportId"];

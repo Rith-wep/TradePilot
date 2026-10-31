@@ -10,6 +10,7 @@ import type { AppConfig, ArtifactVerifierConfig } from "../src/config/env.js";
 import type { CandidateReportCatalogView, CatalogReadStore } from "../src/database/catalog-read-repository.js";
 import { CandidateEvidenceService } from "../src/evidence/evidence-service.js";
 import { silentLogger } from "../src/logging/logger.js";
+import { TEST_AUTH_CONFIG, TEST_AUTHORIZATION, TEST_SECURITY_CONFIG, viewerTokenVerifier } from "./security-fixtures.js";
 
 const SERVER_ROOT = process.cwd();
 const RESEARCH_ROOT = resolve(SERVER_ROOT, "..", "research");
@@ -83,6 +84,7 @@ function config(verifier: ArtifactVerifierConfig): AppConfig {
     nodeEnv: "test", host: "127.0.0.1", port: 3000, logLevel: "error",
     databaseUrl: "postgresql://unused", databaseConnectTimeoutMs: 100,
     databaseReadyTimeoutMs: 100, artifactVerifier: verifier,
+    auth: TEST_AUTH_CONFIG, security: TEST_SECURITY_CONFIG,
   };
 }
 
@@ -91,13 +93,17 @@ function app(generated: ReturnType<typeof fixture>, store = catalog(reportView(g
     config: config(generated.verifier), logger: silentLogger,
     database: { async check() { return true; } }, catalog: store,
     evidence: new CandidateEvidenceService(generated.verifier),
+    tokenVerifier: viewerTokenVerifier,
   });
+}
+
+function api(target: ReturnType<typeof app>, path: string) {
+  return request(target).get(path).set("authorization", TEST_AUTHORIZATION);
 }
 
 test("verified candidates and evidence are projected without canonical report access", async () => {
   const generated = fixture();
-  const list = await request(app(generated))
-    .get(`/api/v1/candidate-reports/${generated.stored.report_id}/candidates/`)
+  const list = await api(app(generated), `/api/v1/candidate-reports/${generated.stored.report_id}/candidates/`)
     .expect(200);
   assert.equal(list.body.data.items.length, 1);
   const candidate = list.body.data.items[0];
@@ -108,8 +114,7 @@ test("verified candidates and evidence are projected without canonical report ac
   assert.equal(list.text.includes(generated.verifier.reportRoot), false);
   assert.equal(list.text.includes("report.json"), false);
 
-  const detail = await request(app(generated))
-    .get(`/api/v1/evidence/${candidate.candidateEvidenceId}/`)
+  const detail = await api(app(generated), `/api/v1/evidence/${candidate.candidateEvidenceId}/`)
     .expect(200);
   assert.deepEqual(detail.body.data, candidate);
 
@@ -129,35 +134,29 @@ test("verified candidates and evidence are projected without canonical report ac
       },
       async get() { return candidate; },
     },
+    tokenVerifier: viewerTokenVerifier,
   });
-  const firstPage = await request(pagedApp)
-    .get(`/api/v1/candidate-reports/${generated.stored.report_id}/candidates?limit=1`).expect(200);
-  await request(pagedApp)
-    .get(`/api/v1/candidate-reports/${generated.stored.report_id}/candidates?limit=1&cursor=${encodeURIComponent(firstPage.body.data.nextCursor)}`)
+  const firstPage = await api(pagedApp, `/api/v1/candidate-reports/${generated.stored.report_id}/candidates?limit=1`).expect(200);
+  await api(pagedApp, `/api/v1/candidate-reports/${generated.stored.report_id}/candidates?limit=1&cursor=${encodeURIComponent(firstPage.body.data.nextCursor)}`)
     .expect(200);
   assert.deepEqual(offsets, [0, 1]);
 });
 
 test("empty, missing, corrupted, mismatched, oversized, and database failures fail closed", async () => {
   const empty = fixture(true);
-  const emptyResponse = await request(app(empty))
-    .get(`/api/v1/candidate-reports/${empty.stored.report_id}/candidates`).expect(200);
+  const emptyResponse = await api(app(empty), `/api/v1/candidate-reports/${empty.stored.report_id}/candidates`).expect(200);
   assert.deepEqual(emptyResponse.body.data.items, []);
 
   const missing = fixture();
-  await request(app(missing, catalog(undefined)))
-    .get(`/api/v1/candidate-reports/${"f".repeat(64)}/candidates`).expect(404);
+  await api(app(missing, catalog(undefined)), `/api/v1/candidate-reports/${"f".repeat(64)}/candidates`).expect(404);
   const absentId = "f".repeat(64);
-  const absentArtifact = await request(app(missing, catalog(reportView(missing.stored, absentId))))
-    .get(`/api/v1/candidate-reports/${absentId}/candidates`).expect(409);
+  const absentArtifact = await api(app(missing, catalog(reportView(missing.stored, absentId))), `/api/v1/candidate-reports/${absentId}/candidates`).expect(409);
   assert.equal(absentArtifact.body.error.code, "EVIDENCE_UNAVAILABLE");
-  await request(app(missing, catalog(reportView(missing.stored))))
-    .get(`/api/v1/candidate-reports/${missing.stored.report_id}/candidates?limit=101`).expect(400);
+  await api(app(missing, catalog(reportView(missing.stored))), `/api/v1/candidate-reports/${missing.stored.report_id}/candidates?limit=101`).expect(400);
 
   const corrupt = fixture();
   writeFileSync(corrupt.stored.report_path, "{}");
-  const corruptResponse = await request(app(corrupt))
-    .get(`/api/v1/candidate-reports/${corrupt.stored.report_id}/candidates`).expect(409);
+  const corruptResponse = await api(app(corrupt), `/api/v1/candidate-reports/${corrupt.stored.report_id}/candidates`).expect(409);
   assert.equal(corruptResponse.body.error.code, "EVIDENCE_UNAVAILABLE");
   assert.equal(corruptResponse.text.includes(corrupt.verifier.reportRoot), false);
 
@@ -165,13 +164,11 @@ test("empty, missing, corrupted, mismatched, oversized, and database failures fa
   const wrongId = "e".repeat(64);
   cpSync(join(mismatch.verifier.reportRoot, mismatch.stored.report_id),
     join(mismatch.verifier.reportRoot, wrongId), { recursive: true });
-  const mismatchResponse = await request(app(mismatch, catalog(reportView(mismatch.stored, wrongId))))
-    .get(`/api/v1/candidate-reports/${wrongId}/candidates`).expect(409);
+  const mismatchResponse = await api(app(mismatch, catalog(reportView(mismatch.stored, wrongId))), `/api/v1/candidate-reports/${wrongId}/candidates`).expect(409);
   assert.equal(mismatchResponse.body.error.code, "EVIDENCE_UNAVAILABLE");
 
   const failed = fixture();
-  const databaseFailure = await request(app(failed, catalog(reportView(failed.stored), true)))
-    .get(`/api/v1/candidate-reports/${failed.stored.report_id}/candidates`).expect(503);
+  const databaseFailure = await api(app(failed, catalog(reportView(failed.stored), true)), `/api/v1/candidate-reports/${failed.stored.report_id}/candidates`).expect(503);
   assert.equal(databaseFailure.body.error.code, "CATALOG_UNAVAILABLE");
 
   const oversized = fixture();
@@ -180,8 +177,8 @@ test("empty, missing, corrupted, mismatched, oversized, and database failures fa
     config: config(tinyConfig), logger: silentLogger,
     database: { async check() { return true; } }, catalog: catalog(reportView(oversized.stored)),
     evidence: new CandidateEvidenceService(tinyConfig),
+    tokenVerifier: viewerTokenVerifier,
   });
-  const oversizedResponse = await request(oversizedApp)
-    .get(`/api/v1/candidate-reports/${oversized.stored.report_id}/candidates`).expect(409);
+  const oversizedResponse = await api(oversizedApp, `/api/v1/candidate-reports/${oversized.stored.report_id}/candidates`).expect(409);
   assert.equal(oversizedResponse.body.error.code, "EVIDENCE_UNAVAILABLE");
 });

@@ -56,7 +56,9 @@ research, register catalog rows, or expose a verification endpoint. Storage
 keys, paths, Parquet content, verifier details, and database errors are never
 returned.
 
-There is no authentication yet. The server validates a loopback-only bind host,
-and catalog routes fail closed in production. These endpoints must not be made
-reachable through a proxy, container port, tunnel, or nonlocal bind until an
-approved authorization layer exists.
+Every catalog request requires a signed OIDC bearer token with at least the
+`viewer` role. Issuer, audience, expiration, algorithm, and JWKS signature are
+verified centrally. The server remains loopback-bound in the current deployment
+model; exposing it through a proxy additionally requires trusted TLS termination,
+network controls, and correct forwarding configuration. Health routes remain
+unauthenticated and contain no catalog data.

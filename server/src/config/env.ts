@@ -15,12 +15,30 @@ export interface AppConfig {
   readonly databaseConnectTimeoutMs: number;
   readonly databaseReadyTimeoutMs: number;
   readonly artifactVerifier: ArtifactVerifierConfig;
+  readonly auth: AuthConfig;
+  readonly security: SecurityConfig;
+}
+export type AuthRole = "viewer" | "researcher" | "admin";
+export type JwtAlgorithm = "RS256" | "PS256" | "ES256";
+export interface AuthConfig {
+  readonly issuer: string;
+  readonly audience: string;
+  readonly jwksUrl: string;
+  readonly algorithms: readonly JwtAlgorithm[];
+  readonly rolesClaim: string;
+  readonly jwksTimeoutMs: number;
+}
+export interface SecurityConfig {
+  readonly corsAllowedOrigins: readonly string[];
+  readonly rateLimitWindowMs: number;
+  readonly rateLimitMax: number;
+  readonly requestBodyMaxBytes: number;
 }
 
 function loopbackHost(value: string | undefined): AppConfig["host"] {
   const candidate = value ?? "127.0.0.1";
   if (candidate !== "127.0.0.1" && candidate !== "::1" && candidate !== "localhost") {
-    throw new ConfigurationError("HOST must be a loopback host until authentication is implemented");
+    throw new ConfigurationError("HOST must be a loopback host in the current deployment model");
   }
   return candidate;
 }
@@ -114,6 +132,46 @@ function absolutePath(name: string, value: string | undefined, fallback: string)
   return candidate;
 }
 
+function trustedHttpsUrl(name: string, value: string | undefined): string {
+  if (value === undefined || value.trim() === "") throw new ConfigurationError(`${name} is required`);
+  let parsed: URL;
+  try { parsed = new URL(value); } catch { throw new ConfigurationError(`${name} must be a valid URL`); }
+  if (parsed.protocol !== "https:" || parsed.username !== "" || parsed.password !== ""
+    || parsed.search !== "" || parsed.hash !== "") {
+    throw new ConfigurationError(`${name} must be a credential-free HTTPS URL without query or fragment`);
+  }
+  return parsed.href.replace(/\/$/u, "");
+}
+
+function algorithms(value: string | undefined): readonly JwtAlgorithm[] {
+  const supported: readonly JwtAlgorithm[] = ["RS256", "PS256", "ES256"];
+  const candidates = (value ?? "RS256").split(",").map((item) => item.trim()).filter(Boolean);
+  if (candidates.length === 0 || new Set(candidates).size !== candidates.length
+    || candidates.some((item) => !supported.includes(item as JwtAlgorithm))) {
+    throw new ConfigurationError(`OIDC_ALLOWED_ALGORITHMS must contain only: ${supported.join(", ")}`);
+  }
+  return Object.freeze(candidates as JwtAlgorithm[]);
+}
+
+function rolesClaim(value: string | undefined): string {
+  const candidate = value ?? "roles";
+  if (!/^[A-Za-z][A-Za-z0-9_.-]{0,63}$/u.test(candidate)) throw new ConfigurationError("OIDC_ROLES_CLAIM is invalid");
+  return candidate;
+}
+
+function corsOrigins(value: string | undefined): readonly string[] {
+  if (value === undefined || value.trim() === "") return Object.freeze([]);
+  const origins = value.split(",").map((item) => item.trim());
+  if (new Set(origins).size !== origins.length || origins.some((origin) => {
+    try {
+      const parsed = new URL(origin);
+      return parsed.origin !== origin || (parsed.protocol !== "https:"
+        && !(parsed.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(parsed.hostname)));
+    } catch { return true; }
+  })) throw new ConfigurationError("CORS_ALLOWED_ORIGINS contains an unsafe origin");
+  return Object.freeze(origins);
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const researchRoot = absolutePath(
     "TRADEPILOT_PYTHON_WORKING_DIRECTORY",
@@ -176,6 +234,20 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
         env["TRADEPILOT_VERIFIER_MAX_PENDING_REQUESTS"],
         16,
       ),
+    }),
+    auth: Object.freeze({
+      issuer: trustedHttpsUrl("OIDC_ISSUER", env["OIDC_ISSUER"]),
+      audience: nonEmpty("OIDC_AUDIENCE", env["OIDC_AUDIENCE"], ""),
+      jwksUrl: trustedHttpsUrl("OIDC_JWKS_URL", env["OIDC_JWKS_URL"]),
+      algorithms: algorithms(env["OIDC_ALLOWED_ALGORITHMS"]),
+      rolesClaim: rolesClaim(env["OIDC_ROLES_CLAIM"]),
+      jwksTimeoutMs: positiveInteger("OIDC_JWKS_TIMEOUT_MS", env["OIDC_JWKS_TIMEOUT_MS"], 3_000),
+    }),
+    security: Object.freeze({
+      corsAllowedOrigins: corsOrigins(env["CORS_ALLOWED_ORIGINS"]),
+      rateLimitWindowMs: positiveInteger("RATE_LIMIT_WINDOW_MS", env["RATE_LIMIT_WINDOW_MS"], 60_000),
+      rateLimitMax: positiveInteger("RATE_LIMIT_MAX", env["RATE_LIMIT_MAX"], 120),
+      requestBodyMaxBytes: positiveInteger("REQUEST_BODY_MAX_BYTES", env["REQUEST_BODY_MAX_BYTES"], 32_768),
     }),
   });
 }

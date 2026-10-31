@@ -1,10 +1,11 @@
 # TradePilot backend foundation
 
 This directory contains the Phase 5 Node.js/Express API and PostgreSQL catalog
-foundation. It exposes health checks only. Its internal artifact verifier can
+foundation. It exposes health checks and authenticated, read-only historical
+research catalog/evidence APIs. Its internal artifact verifier can
 invoke the trusted Python verification contract, but it is not exposed through
-HTTP. The server does not run research, authenticate users, or produce live
-trading data.
+HTTP. The server does not manage users, run research, or produce live trading
+data.
 
 ## Requirements
 
@@ -49,17 +50,44 @@ All endpoints use the `tradepilot-api/v1` response envelope and return an
 `x-request-id` header. Requests may provide a safe `x-request-id`; otherwise the
 server creates a UUID.
 
+The health endpoints are intentionally unauthenticated. Every `/api/v1` route
+requires an OIDC access token in `Authorization: Bearer <token>` and at least
+the `viewer` role. `researcher` and `admin` inherit viewer access; no privileged
+write operation exists yet. Roles are accepted only from the configured signed
+token claim. Client headers, query parameters, and request bodies cannot grant
+roles.
+
 The three catalog endpoints are read-only and support optional `limit` and
 `cursor` parameters. Page sizes default to 25 and are capped at 100. Trailing
 slash variants are equivalent. Decimal values and PostgreSQL `bigint` values
 remain strings; timestamps are UTC ISO 8601 values. See
 `docs/contracts/research-catalog-api-v1.md` for response fields.
 
-Until authentication is implemented, `HOST` must be `127.0.0.1`, `::1`, or
-`localhost`. Catalog routes return `CATALOG_API_DISABLED` in production even on
-loopback. They expose no storage keys, filesystem paths, raw Parquet, Python
+`HOST` remains restricted to `127.0.0.1`, `::1`, or `localhost` in the current
+deployment model. Production catalog access is no longer blanket-disabled: the
+process starts only with valid OIDC/JWKS security configuration, and every API
+request must authenticate and authorize successfully. Routes expose no storage keys, filesystem paths, raw Parquet, Python
 diagnostics, or verification internals. Candidate reports are explicitly
 historical research evidence and never live trading signals.
+
+## Authentication and HTTP security
+
+Configure an HTTPS OIDC issuer, the API audience, and the issuer's HTTPS JWKS
+URL. Tokens must have a trusted asymmetric algorithm (`RS256`, `PS256`, or
+`ES256`), matching issuer/audience, `sub`, `iat`, and unexpired `exp`. Signature
+keys are resolved only from the configured JWKS. A missing, malformed, expired,
+wrong-issuer, wrong-audience, or invalid-signature token fails closed.
+
+Helmet security headers are enabled, request bodies are bounded, and `/api/v1`
+requests have an in-memory bounded rate limit. CORS is deny-by-default for
+browser origins: list exact HTTPS origins (or HTTP loopback origins for local
+development) in `CORS_ALLOWED_ORIGINS`; wildcards are rejected. The current
+rate limiter is per process and is not a distributed abuse-control system.
+
+The server validates bearer tokens only. It has no login flow, refresh-token
+handling, user directory, revocation feed, or audit-log sink. TLS termination,
+OIDC tenant policy, network controls, distributed rate limiting, key-rotation
+monitoring, and authorization administration remain deployment responsibilities.
 
 Candidate evidence is never read directly by Node. The bounded Python evidence
 contract verifies the immutable report first, then projects supported fields.
@@ -71,6 +99,7 @@ Evidence responses include `classification: "HISTORICAL_RESEARCH"` and
 
 ```text
 src/
+|-- auth/                # OIDC/JWKS verification and role authorization
 |-- config/              # validated process configuration
 |-- http/contracts/      # versioned response envelopes
 |-- http/errors/         # transport-safe errors
