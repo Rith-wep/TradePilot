@@ -34,6 +34,7 @@ function config(overrides: Partial<ArtifactVerifierConfig> = {}): ArtifactVerifi
     maxOutputBytes: 1_048_576,
     maxErrorBytes: 16_384,
     maxConcurrency: 2,
+    maxPendingRequests: 16,
     ...overrides,
   };
 }
@@ -176,4 +177,23 @@ test("configured concurrency bound queues excess verifier processes", async () =
   ]);
   assert.equal(results.every((result) => result.status === "rejected"), true);
   assert.ok(Date.now() - started >= 120);
+});
+
+test("pending queue rejects overload with a typed retryable error", async () => {
+  const fakeRoot = fakePythonModule("timeout");
+  const settings = config({
+    pythonWorkingDirectory: fakeRoot,
+    timeoutMs: 150,
+    maxConcurrency: 1,
+    maxPendingRequests: 1,
+  });
+  const service = new ArtifactVerifierService(settings);
+  const first = service.verify(datasetRequest("a".repeat(64), "overload-1"));
+  const second = service.verify(datasetRequest("a".repeat(64), "overload-2"));
+  await assert.rejects(
+    service.verify(datasetRequest("a".repeat(64), "overload-3")),
+    (error: unknown) => error instanceof ArtifactVerificationError
+      && error.kind === "CAPACITY" && error.code === "VERIFIER_OVERLOADED" && error.retryable,
+  );
+  await Promise.allSettled([first, second]);
 });

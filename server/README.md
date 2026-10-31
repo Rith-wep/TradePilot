@@ -52,6 +52,7 @@ src/
 |-- http/routes/         # Express routers
 |-- database/            # pg pool, migration runner and catalog access
 |-- verification/        # internal, schema-checked Python contract adapter
+|-- catalog/             # verified, transactional artifact registration
 |-- logging/             # structured JSON logger
 |-- app.ts               # dependency-injected Express composition
 `-- server.ts            # process lifecycle and graceful shutdown
@@ -123,4 +124,32 @@ JSON strings. The child receives a small operating-system environment allowlist
 rather than database credentials or the server's complete environment.
 
 This service is deliberately not wired into Express or PostgreSQL. Verified
-metadata must not be cataloged until a later, separately approved workflow.
+metadata is consumed only by the internal catalog-registration service; neither
+service is wired into Express.
+
+## Trusted catalog registration
+
+`CatalogRegistrationService` accepts only an immutable ID plus the dataset
+locator fields required by the v1 verifier. It performs fresh Python integrity
+verification for every registration attempt, derives every database field from
+the verified response, and builds storage keys from fixed internal prefixes.
+Caller paths and caller-supplied catalog metadata are not accepted.
+
+Dataset and candidate-report writes use one PostgreSQL transaction and
+parameterized queries. Re-registering identical content returns `EXISTING`;
+different metadata for the same immutable ID fails closed. A candidate report
+can be registered only after its referenced dataset exists in the verified
+catalog and its checksum, instrument, and timeframe provenance agree.
+
+`integrity_verified_at` records the registration attempt that first published
+the immutable row. It is evidence of that verification, not a guarantee that a
+filesystem remains unchanged forever. Reconciliation should periodically run
+the Python verifier against catalog entries, compare immutable metadata, and
+raise an operator-visible discrepancy without updating identities or silently
+deleting history.
+
+The production database role should have only `SELECT` and `INSERT` on catalog
+tables plus sequence/migration permissions where operationally required. It
+does not need `UPDATE`, `DELETE`, schema ownership, or access to artifact-root
+credentials. Filesystem permissions should make artifact roots read-only to the
+Node service and Python verifier after immutable publication.

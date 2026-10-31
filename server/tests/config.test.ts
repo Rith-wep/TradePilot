@@ -25,6 +25,7 @@ test("configuration applies explicit defaults", () => {
       maxOutputBytes: 1_048_576,
       maxErrorBytes: 16_384,
       maxConcurrency: 2,
+      maxPendingRequests: 16,
     },
   });
 });
@@ -43,6 +44,10 @@ test("configuration validates environment, log level, and port", () => {
   );
   assert.throws(
     () => loadConfig({ DATABASE_URL, TRADEPILOT_VERIFIER_MAX_CONCURRENCY: "0" }),
+    ConfigurationError,
+  );
+  assert.throws(
+    () => loadConfig({ DATABASE_URL, TRADEPILOT_VERIFIER_MAX_PENDING_REQUESTS: "0" }),
     ConfigurationError,
   );
 });

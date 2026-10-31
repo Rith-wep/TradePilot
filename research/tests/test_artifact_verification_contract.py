@@ -80,6 +80,7 @@ class ArtifactVerificationContractTests(unittest.TestCase):
         self.assertEqual(verification["dataset_checksum"], stored.dataset_checksum)
         self.assertEqual(verification["parquet_checksum"], stored.file_checksum)
         self.assertEqual(verification["pip_size"], "0.0001")
+        self.assertIs(verification["is_synthetic"], True)
         self.assertEqual(verification["first_timestamp"], "2024-01-02T00:00:00Z")
 
     def test_valid_report_preserves_provenance_and_decimal_strings(self) -> None:

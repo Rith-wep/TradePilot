@@ -161,6 +161,7 @@ def _dataset_verification(
         "quote_currency": manifest.get("quote_currency"),
         "pip_size": manifest.get("pip_size"),
         "price_precision": manifest.get("price_precision"),
+        "is_synthetic": all(candle.is_synthetic for candle in report.candles),
         "source_artifacts_checksum": manifest.get("source_artifacts_sha256"),
         "quality": report.quality_report.to_dict() if report.quality_report else None,
     }

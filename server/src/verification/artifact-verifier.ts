@@ -16,10 +16,18 @@ class Semaphore {
   private active = 0;
   private readonly waiting: Array<() => void> = [];
 
-  public constructor(private readonly maximum: number) {}
+  public constructor(
+    private readonly maximum: number,
+    private readonly maximumWaiting: number,
+  ) {}
 
   public async acquire(): Promise<() => void> {
     if (this.active >= this.maximum) {
+      if (this.waiting.length >= this.maximumWaiting) {
+        throw new ArtifactVerificationError(
+          "CAPACITY", "VERIFIER_OVERLOADED", "artifact verifier is at capacity", true,
+        );
+      }
       await new Promise<void>((resolveWait) => this.waiting.push(resolveWait));
     }
     this.active += 1;
@@ -61,7 +69,7 @@ export class ArtifactVerifierService {
 
   public constructor(private readonly config: ArtifactVerifierConfig) {
     this.validator = new ArtifactContractValidator(config.schemaDirectory);
-    this.semaphore = new Semaphore(config.maxConcurrency);
+    this.semaphore = new Semaphore(config.maxConcurrency, config.maxPendingRequests);
   }
 
   public async verify(request: ArtifactVerificationRequest): Promise<VerifiedArtifactResponse> {

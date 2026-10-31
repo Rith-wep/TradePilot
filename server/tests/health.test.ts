@@ -23,6 +23,7 @@ const config = {
     maxOutputBytes: 1_048_576,
     maxErrorBytes: 16_384,
     maxConcurrency: 2,
+    maxPendingRequests: 16,
   },
 };
 

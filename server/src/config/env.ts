@@ -26,6 +26,7 @@ export interface ArtifactVerifierConfig {
   readonly maxOutputBytes: number;
   readonly maxErrorBytes: number;
   readonly maxConcurrency: number;
+  readonly maxPendingRequests: number;
 }
 
 export class ConfigurationError extends Error {
@@ -159,6 +160,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
         "TRADEPILOT_VERIFIER_MAX_CONCURRENCY",
         env["TRADEPILOT_VERIFIER_MAX_CONCURRENCY"],
         2,
+      ),
+      maxPendingRequests: positiveInteger(
+        "TRADEPILOT_VERIFIER_MAX_PENDING_REQUESTS",
+        env["TRADEPILOT_VERIFIER_MAX_PENDING_REQUESTS"],
+        16,
       ),
     }),
   });

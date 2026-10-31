@@ -14,6 +14,22 @@ from tradepilot.data.normalization import normalize_provider_candle  # noqa: E40
 from tradepilot.data.storage import ParquetDatasetStore  # noqa: E402
 
 data_root = Path(sys.argv[1])
+if len(sys.argv) > 2:
+    from reporting_helpers import build_run, create_context  # noqa: E402
+    from tradepilot.reporting.storage import ReportStorage  # noqa: E402
+
+    _, integrity, calendar, config, strategy, fingerprint, setups = create_context(str(data_root))
+    stored_report = ReportStorage(sys.argv[2]).save(
+        build_run(integrity, calendar, config, strategy, fingerprint, setups)
+    )
+    print(json.dumps({
+        "dataset_id": integrity.dataset_id,
+        "dataset_checksum": integrity.dataset_checksum,
+        "report_id": stored_report.report_id,
+        "report_path": str(stored_report.report_path),
+    }))
+    raise SystemExit(0)
+
 candle = normalize_provider_candle(
     raw_candle(0),
     instrument=EURUSD,
